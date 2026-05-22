@@ -7,6 +7,7 @@ from tools.access_request_tool import (
 )
 
 from services.resource_service import ResourceService
+from services.prompt_service import PromptService
 
 mcp = FastMCP("AccessOps MCP Server")
 
@@ -76,6 +77,37 @@ def access_request_status_codes() -> str:
     """
     return ResourceService.get_resource("schema://access-request/status-codes")
 
+@mcp.prompt()
+def troubleshoot_access_request(request_id: str) -> str:
+    """
+    Generate a structured troubleshooting workflow for an access request.
+
+    Use this prompt when the user asks why an access request is stuck,
+    delayed, pending, in progress, or failed.
+    """
+    return PromptService.troubleshoot_access_request(request_id)
+
+
+@mcp.prompt()
+def generate_requester_response(request_id: str) -> str:
+    """
+    Generate a requester-facing response for an access request.
+
+    Use this prompt when the user wants to draft a professional update
+    for the person who submitted the access request.
+    """
+    return PromptService.generate_requester_response(request_id)
+
+
+@mcp.prompt()
+def prepare_support_summary(request_id: str) -> str:
+    """
+    Generate a support engineer summary for an access request.
+
+    Use this prompt when the user wants an operations-focused summary
+    for troubleshooting, escalation, or handover.
+    """
+    return PromptService.prepare_support_summary(request_id)
 
 if __name__ == "__main__":
     mcp.run(transport="streamable-http")
