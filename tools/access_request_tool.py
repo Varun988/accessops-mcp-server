@@ -1,5 +1,5 @@
 from services.request_service import RequestService
-
+from utils.error_utils import ErrorUtils
 request_service = RequestService()
 
 TOOL_METADATA = {
@@ -70,11 +70,12 @@ def get_access_request_status(request_id: str) -> dict:
             "data": request.to_dict()
         }
 
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+    except ValueError:
+        return ErrorUtils.access_request_not_found(request_id)
+
+    except Exception as e:
+        return ErrorUtils.generic_error(str(e))
+
 
 def get_pending_approvers(request_id: str) -> dict:
     """
@@ -101,11 +102,11 @@ def get_pending_approvers(request_id: str) -> dict:
             }
         }
 
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+    except ValueError:
+        return ErrorUtils.approvers_not_found(request_id)
+
+    except Exception as e:
+        return ErrorUtils.generic_error(str(e))
 
 def diagnose_access_request(request_id: str) -> dict:
     """
@@ -157,8 +158,8 @@ def diagnose_access_request(request_id: str) -> dict:
             }
         }
 
-    except ValueError as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+    except ValueError:
+        return ErrorUtils.access_request_not_found(request_id)
+
+    except Exception as e:
+        return ErrorUtils.generic_error

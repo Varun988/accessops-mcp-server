@@ -71,6 +71,15 @@ async def main():
             )
             print(diagnosis)
 
+            print("\n=== CALL TOOL: access_request_status INVALID REQUEST ===")
+            invalid_result = await session.call_tool(
+                "access_request_status",
+                {
+                    "request_id": "REQ-9999"
+                }
+            )
+            print(invalid_result)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
