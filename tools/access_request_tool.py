@@ -1,5 +1,7 @@
 from services.request_service import RequestService
 from utils.error_utils import ErrorUtils
+from utils.audit_logger import AuditLogger
+
 request_service = RequestService()
 
 TOOL_METADATA = {
@@ -65,15 +67,31 @@ def get_access_request_status(request_id: str) -> dict:
     try:
         request = request_service.get_request_by_id(request_id)
 
+        AuditLogger.log_tool_call(
+            tool_name="access_request_status",
+            request_id=request_id,
+            status="success",
+        )
+
         return {
             "success": True,
             "data": request.to_dict()
         }
 
     except ValueError:
+        AuditLogger.log_tool_call(
+            tool_name="access_request_status",
+            request_id=request_id,
+            status="failure",
+        )
         return ErrorUtils.access_request_not_found(request_id)
 
     except Exception as e:
+        AuditLogger.log_tool_call(
+            tool_name="access_request_status",
+            request_id=request_id,
+            status="failure",
+        )
         return ErrorUtils.generic_error(str(e))
 
 
@@ -94,6 +112,12 @@ def get_pending_approvers(request_id: str) -> dict:
     try:
         approvers = request_service.get_pending_approvers(request_id)
 
+        AuditLogger.log_tool_call(
+            tool_name="pending_approvers",
+            request_id=request_id,
+            status="success",
+        )
+
         return {
             "success": True,
             "data": {
@@ -103,9 +127,19 @@ def get_pending_approvers(request_id: str) -> dict:
         }
 
     except ValueError:
+        AuditLogger.log_tool_call(
+            tool_name="pending_approvers",
+            request_id=request_id,
+            status="failure",
+        )
         return ErrorUtils.approvers_not_found(request_id)
 
     except Exception as e:
+        AuditLogger.log_tool_call(
+            tool_name="pending_approvers",
+            request_id=request_id,
+            status="failure",
+        )
         return ErrorUtils.generic_error(str(e))
 
 def diagnose_access_request(request_id: str) -> dict:
@@ -124,21 +158,18 @@ def diagnose_access_request(request_id: str) -> dict:
         dict: Diagnosis summary
     """
     try:
-        # Step 1: Get request status
         request = request_service.get_request_by_id(request_id)
 
-        # Step 2: Get pending approvers
         try:
             approvers = request_service.get_pending_approvers(request_id)
         except ValueError:
             approvers = []
 
-        # Step 3: Basic reasoning logic
         if request.status == "Pending":
             diagnosis = f"Request is pending at stage '{request.current_stage}'."
             if approvers:
                 diagnosis += f" Awaiting approval from: {', '.join(approvers)}."
-        
+
         elif request.status == "In Progress":
             diagnosis = f"Request is in progress at stage '{request.current_stage}'."
 
@@ -147,6 +178,12 @@ def diagnose_access_request(request_id: str) -> dict:
 
         else:
             diagnosis = f"Request is in status '{request.status}'."
+
+        AuditLogger.log_tool_call(
+            tool_name="diagnose_request",
+            request_id=request_id,
+            status="success",
+        )
 
         return {
             "success": True,
@@ -159,7 +196,17 @@ def diagnose_access_request(request_id: str) -> dict:
         }
 
     except ValueError:
+        AuditLogger.log_tool_call(
+            tool_name="diagnose_request",
+            request_id=request_id,
+            status="failure",
+        )
         return ErrorUtils.access_request_not_found(request_id)
 
     except Exception as e:
-        return ErrorUtils.generic_error
+        AuditLogger.log_tool_call(
+            tool_name="diagnose_request",
+            request_id=request_id,
+            status="failure",
+        )
+        return ErrorUtils.generic_error(str(e))
