@@ -2,13 +2,15 @@
 
 AccessOps MCP Server is a production-style Model Context Protocol (MCP) server for enterprise access request troubleshooting.
 
-It exposes MCP tools, resources, and prompts that allow AI assistants to safely retrieve access request status, identify pending approvers, diagnose stuck requests, read policy/runbook context, and follow standardized troubleshooting workflows.
+It exposes MCP tools, resources, and prompts that allow AI assistants to safely retrieve access request status, identify pending approvers, diagnose stuck requests, read policy/runbook context, follow standardized troubleshooting workflows, and execute sensitive actions only through human-approved workflows.
 
 ## Project Purpose
 
-Enterprise support and identity operations teams often spend time investigating why access requests are pending, delayed, or failed.
+Enterprise support and identity operations teams often spend significant time investigating why access requests are pending, delayed, or failed.
 
-This project demonstrates how MCP can provide an AI assistant with structured, safe, and auditable access to enterprise access-operation capabilities.
+This project demonstrates how MCP can provide an AI assistant with structured, safe, auditable, and extensible access to enterprise access-operation capabilities.
+
+The project is designed as a resume-worthy, production-oriented MCP implementation with modular architecture, repository abstraction, structured error handling, audit logging, and human-in-the-loop action controls.
 
 ## Key Features
 
@@ -17,10 +19,13 @@ This project demonstrates how MCP can provide an AI assistant with structured, s
 - MCP tool discovery and invocation
 - MCP resource discovery and reading
 - MCP prompt discovery and retrieval
-- Modular architecture with models, services, tools, and data layers
-- Mock enterprise data layer designed to be replaceable with real systems
+- Modular architecture with MCP wrapper, tool, service, repository, model, utility, and data layers
+- Repository abstraction pattern for replacing mock data with real enterprise systems
 - Composite diagnostic tool for access request troubleshooting
-- Clean separation between MCP wrapper and business logic
+- Structured error model with error codes, retryability, and suggested actions
+- Audit logging with correlation IDs for tool execution traceability
+- Human-in-the-loop provisioning retry workflow for safe action execution
+- Clean separation between MCP protocol layer and business logic
 
 ## MCP Capabilities
 
@@ -36,6 +41,16 @@ The server exposes the following MCP tools:
 
 - `diagnose_request`
   - Provides a business-level diagnosis for pending, in-progress, or failed access requests.
+
+- `prepare_provisioning_retry`
+  - Creates a retry draft for a failed provisioning request.
+  - Does not execute the retry.
+  - Marks the action as requiring human confirmation.
+
+- `submit_provisioning_retry_after_confirmation`
+  - Submits a prepared provisioning retry only after explicit human/operator approval.
+  - Requires a valid `retry_id` and `approved_by` value.
+  - Emits audit logs for action traceability.
 
 ### Resources
 
@@ -63,6 +78,86 @@ The server exposes the following MCP prompts:
 - `prepare_support_summary`
   - Template for creating an operations/support summary.
 
+## Human-in-the-loop Action Workflow
+
+The server supports a safe two-step action pattern for provisioning retry.
+
+### 1. Prepare Retry
+
+Tool:
+
+```text
+prepare_provisioning_retry
+```
+
+This tool:
+
+- Validates that the access request is in `Failed` status.
+- Creates a retry draft.
+- Marks the draft as requiring confirmation.
+- Does not execute the provisioning retry.
+- Returns a `retry_id` for the next step.
+
+Example output:
+
+```json
+{
+  "success": true,
+  "data": {
+    "retry_id": "RETRY-REQ-1003-abc12345",
+    "request_id": "REQ-1003",
+    "action": "Retry provisioning",
+    "risk_level": "Medium",
+    "requires_confirmation": true,
+    "status": "Prepared",
+    "summary": "Provisioning retry prepared for access request REQ-1003. User confirmation is required before execution."
+  }
+}
+```
+
+### 2. Submit Retry After Confirmation
+
+Tool:
+
+```text
+submit_provisioning_retry_after_confirmation
+```
+
+This tool:
+
+- Requires a valid `retry_id`.
+- Requires an `approved_by` value.
+- Submits the retry only after explicit approval.
+- Updates the retry draft status to `Submitted`.
+- Emits an audit event.
+
+Example input:
+
+```json
+{
+  "retry_id": "RETRY-REQ-1003-abc12345",
+  "approved_by": "operator.user"
+}
+```
+
+Example output:
+
+```json
+{
+  "success": true,
+  "data": {
+    "retry_id": "RETRY-REQ-1003-abc12345",
+    "request_id": "REQ-1003",
+    "action": "Retry provisioning",
+    "status": "Submitted",
+    "approved_by": "operator.user",
+    "message": "Provisioning retry for request REQ-1003 has been submitted after approval by operator.user."
+  }
+}
+```
+
+This pattern prevents autonomous execution of sensitive actions and demonstrates enterprise-safe AI automation.
+
 ## Architecture
 
 ```text
@@ -78,6 +173,10 @@ AccessOps MCP Server
 Internal Tool Layer
    ↓
 Service Layer
+   ↓
+Repository Interface
+   ↓
+Repository Implementation
    ↓
 Model Layer
    ↓
@@ -96,14 +195,24 @@ accessops-mcp-server/
 │   ├── mock_data.py
 │   └── resource_data.py
 ├── models/
-│   └── request_model.py
+│   ├── error_model.py
+│   ├── request_model.py
+│   └── retry_model.py
+├── repositories/
+│   ├── request_repository.py
+│   └── mock_request_repository.py
 ├── services/
+│   ├── prompt_service.py
 │   ├── request_service.py
 │   ├── resource_service.py
-│   └── prompt_service.py
+│   └── retry_service.py
 ├── tools/
 │   ├── access_request_tool.py
+│   ├── retry_tool.py
 │   └── tool_registry.py
+├── utils/
+│   ├── audit_logger.py
+│   └── error_utils.py
 ├── README.md
 └── .gitignore
 ```
@@ -148,6 +257,9 @@ The client test validates:
 - Resource reading
 - Prompt discovery
 - Prompt retrieval
+- Structured error responses
+- Human-in-the-loop retry preparation
+- Human-approved retry submission
 
 ## Example Tool Call
 
@@ -181,6 +293,47 @@ Example response:
 }
 ```
 
+## Structured Error Example
+
+Invalid request input returns a structured error response:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ACCESS_REQUEST_NOT_FOUND",
+    "message": "Access request 'REQ-9999' was not found.",
+    "retryable": false,
+    "suggested_action": "Verify the request ID and try again."
+  }
+}
+```
+
+Retry-specific errors include:
+
+- `RETRY_NOT_ALLOWED`
+- `RETRY_DRAFT_NOT_FOUND`
+- `APPROVAL_REQUIRED`
+
+## Audit Logging
+
+The server emits audit events for MCP tool execution.
+
+Example audit event:
+
+```json
+{
+  "timestamp": "2026-05-22T18:30:00Z",
+  "event_type": "MCP_TOOL_CALL",
+  "tool_name": "access_request_status",
+  "request_id": "REQ-1001",
+  "status": "success",
+  "correlation_id": "generated-correlation-id"
+}
+```
+
+Audit logging currently prints events to the server console. The design can later be extended to centralized logging systems such as Splunk, ELK, SAP BTP logging, Azure Application Insights, or cloud-native observability platforms.
+
 ## Production Design Direction
 
 The current version uses mock data for learning and demonstration.
@@ -192,17 +345,18 @@ The architecture is designed so the mock layer can later be replaced with:
 - PostgreSQL or enterprise databases
 - Splunk or Elasticsearch logs
 - SharePoint, Confluence, or Git-based knowledge repositories
+- SAP BTP Destination service or enterprise API gateway
 
 Planned production enhancements:
 
-- Repository abstraction layer
-- Structured error model
-- Audit logging
-- Role-based authorization
-- Human-in-the-loop approval actions
-- Safe write-action tools
-- Observability and metrics
+- Authentication and authorization
+- Role-based access control
+- Persistent retry draft storage
+- Centralized audit logging
+- Request tracing and observability metrics
+- Rate limiting and timeout handling
 - Deployment on SAP BTP or cloud platform
+- Integration with real access management and workflow systems
 
 ## Interview Explanation
 
@@ -210,7 +364,13 @@ AccessOps MCP Server demonstrates how MCP can connect AI assistants to enterpris
 
 The project exposes domain-specific tools, resources, and prompts rather than generic backend APIs. This allows an AI assistant to safely discover capabilities, retrieve structured access request data, read policy context, follow approved troubleshooting workflows, and produce consistent support responses.
 
-The architecture separates MCP protocol concerns from business logic using tool wrappers, services, models, and data layers. This makes the project easier to test, maintain, and extend toward real enterprise integrations.
+The architecture separates MCP protocol concerns from business logic using MCP wrappers, internal tool functions, services, repositories, models, utilities, and data layers. This makes the project easier to test, maintain, and extend toward real enterprise integrations.
+
+The project also demonstrates production-level safety patterns such as structured error handling, audit logging with correlation IDs, repository-based backend abstraction, and human-in-the-loop approval before executing sensitive provisioning retry actions.
+
+## Resume Summary
+
+AccessOps MCP Server is a production-style MCP implementation for enterprise access request troubleshooting. It demonstrates real MCP client-server communication, tools, resources, prompts, structured errors, audit logging, repository abstraction, and human-approved action workflows.
 
 ## Status
 
@@ -221,5 +381,9 @@ MCP tools: complete
 MCP resources: complete
 MCP prompts: complete
 Real MCP client-server test: complete
+Repository abstraction: complete
+Structured error model: complete
+Audit logging: complete
+Human-in-the-loop retry workflow: complete
 Production hardening: in progress
 ```
