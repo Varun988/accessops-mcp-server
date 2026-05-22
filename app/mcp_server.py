@@ -1,5 +1,5 @@
 from mcp.server.fastmcp import FastMCP
-
+from config.version import APP_NAME, APP_VERSION
 from tools.access_request_tool import (
     get_access_request_status,
     get_pending_approvers,
@@ -14,8 +14,7 @@ from tools.retry_tool import (
 from services.resource_service import ResourceService
 from services.prompt_service import PromptService
 
-mcp = FastMCP("AccessOps MCP Server")
-
+mcp = FastMCP(f"{APP_NAME} v{APP_VERSION}")
 
 @mcp.tool()
 def access_request_status(request_id: str) -> dict:
