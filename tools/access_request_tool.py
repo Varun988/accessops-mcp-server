@@ -1,5 +1,7 @@
 from services.request_service import RequestService
 
+request_service = RequestService()
+
 TOOL_METADATA = {
     "name": "get_access_request_status",
     "description": "Get status and details of an access request using request ID.",
@@ -61,7 +63,7 @@ def get_access_request_status(request_id: str) -> dict:
         dict: Structured response containing request details or error
     """
     try:
-        request = RequestService.get_request_by_id(request_id)
+        request = request_service.get_request_by_id(request_id)
 
         return {
             "success": True,
@@ -89,7 +91,7 @@ def get_pending_approvers(request_id: str) -> dict:
         dict: List of approvers or error
     """
     try:
-        approvers = RequestService.get_pending_approvers(request_id)
+        approvers = request_service.get_pending_approvers(request_id)
 
         return {
             "success": True,
@@ -122,11 +124,11 @@ def diagnose_access_request(request_id: str) -> dict:
     """
     try:
         # Step 1: Get request status
-        request = RequestService.get_request_by_id(request_id)
+        request = request_service.get_request_by_id(request_id)
 
         # Step 2: Get pending approvers
         try:
-            approvers = RequestService.get_pending_approvers(request_id)
+            approvers = request_service.get_pending_approvers(request_id)
         except ValueError:
             approvers = []
 
