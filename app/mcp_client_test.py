@@ -1,6 +1,7 @@
 import asyncio
 import json
 
+from config.app_config import AppConfig
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
@@ -25,7 +26,7 @@ def extract_tool_payload(tool_result) -> dict:
 
 
 async def main():
-    server_url = "http://127.0.0.1:8000/mcp"
+    server_url = AppConfig.MCP_SERVER_URL
 
     async with streamablehttp_client(server_url) as (read_stream, write_stream, _):
         async with ClientSession(read_stream, write_stream) as session:
