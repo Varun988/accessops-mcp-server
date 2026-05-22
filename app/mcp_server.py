@@ -6,6 +6,7 @@ from tools.access_request_tool import (
     diagnose_access_request,
 )
 
+from services.resource_service import ResourceService
 
 mcp = FastMCP("AccessOps MCP Server")
 
@@ -41,6 +42,39 @@ def diagnose_request(request_id: str) -> dict:
     pending, in progress, or failed.
     """
     return diagnose_access_request(request_id)
+
+@mcp.resource("policy://access/approval-rules")
+def access_approval_rules() -> str:
+    """
+    Access approval policy rules.
+
+    Provides enterprise approval rules for access requests, including
+    manager approval, security approval, compliance approval, escalation,
+    and least-privilege guidance.
+    """
+    return ResourceService.get_resource("policy://access/approval-rules")
+
+
+@mcp.resource("runbook://identity/provisioning-failure")
+def provisioning_failure_runbook() -> str:
+    """
+    Identity provisioning failure runbook.
+
+    Provides troubleshooting steps for access requests that are approved
+    but fail during provisioning.
+    """
+    return ResourceService.get_resource("runbook://identity/provisioning-failure")
+
+
+@mcp.resource("schema://access-request/status-codes")
+def access_request_status_codes() -> str:
+    """
+    Access request status code reference.
+
+    Explains meanings of access request statuses such as Pending,
+    In Progress, Failed, Completed, and Rejected.
+    """
+    return ResourceService.get_resource("schema://access-request/status-codes")
 
 
 if __name__ == "__main__":

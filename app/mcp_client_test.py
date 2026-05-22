@@ -14,7 +14,22 @@ async def main():
             print("=== AVAILABLE TOOLS ===")
             tools = await session.list_tools()
             print(tools)
+            
+            print("\n=== AVAILABLE RESOURCES ===")
+            resources = await session.list_resources()
+            print(resources)
 
+            print("\n=== READ RESOURCE: policy://access/approval-rules ===")
+            approval_policy = await session.read_resource(
+                "policy://access/approval-rules"
+            )
+            print(approval_policy)
+
+            print("\n=== READ RESOURCE: runbook://identity/provisioning-failure ===")
+            runbook = await session.read_resource(
+                "runbook://identity/provisioning-failure"
+            )
+            print(runbook)
             print("\n=== CALL TOOL: get_access_request_status ===")
             result = await session.call_tool(
                 "access_request_status",
