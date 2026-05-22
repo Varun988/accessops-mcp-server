@@ -42,3 +42,6 @@ MOCK_APPROVERS = {
     "REQ-1002": ["manager_anu"],
     "REQ-1003": ["manager_vikram", "compliance_team"]
 }
+
+# Simulated retry draft store
+MOCK_RETRY_DRAFTS = {}

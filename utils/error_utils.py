@@ -39,3 +39,39 @@ class ErrorUtils:
                 suggested_action="Retry the operation. If the issue persists, contact support.",
             ).to_dict(),
         }
+
+    @staticmethod
+    def retry_not_allowed(request_id: str, reason: str) -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="RETRY_NOT_ALLOWED",
+                message=f"Provisioning retry is not allowed for request '{request_id}'. {reason}",
+                retryable=False,
+                suggested_action="Retry can be prepared only for access requests in Failed status.",
+            ).to_dict(),
+        }
+
+    @staticmethod
+    def retry_draft_not_found(retry_id: str) -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="RETRY_DRAFT_NOT_FOUND",
+                message=f"Retry draft '{retry_id}' was not found.",
+                retryable=False,
+                suggested_action="Prepare a provisioning retry first, then submit it after confirmation.",
+            ).to_dict(),
+        }
+
+    @staticmethod
+    def approval_required() -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="APPROVAL_REQUIRED",
+                message="Human approval is required before submitting the provisioning retry.",
+                retryable=False,
+                suggested_action="Provide the approving user or operator before submitting the retry.",
+            ).to_dict(),
+        }

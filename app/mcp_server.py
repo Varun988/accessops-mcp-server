@@ -6,6 +6,11 @@ from tools.access_request_tool import (
     diagnose_access_request,
 )
 
+from tools.retry_tool import (
+    prepare_provisioning_retry as prepare_retry_tool,
+    submit_provisioning_retry_after_confirmation as submit_retry_tool,
+)
+
 from services.resource_service import ResourceService
 from services.prompt_service import PromptService
 
@@ -108,6 +113,33 @@ def prepare_support_summary(request_id: str) -> str:
     for troubleshooting, escalation, or handover.
     """
     return PromptService.prepare_support_summary(request_id)
+
+@mcp.tool()
+def prepare_provisioning_retry(request_id: str) -> dict:
+    """
+    Prepare a provisioning retry draft for a failed access request.
+
+    Use this tool when the user asks whether provisioning can be retried
+    for a failed access request. This tool does not execute the retry.
+    It creates a retry draft and requires human confirmation before submission.
+    """
+    return prepare_retry_tool(request_id)
+   
+@mcp.tool()
+def submit_provisioning_retry_after_confirmation(
+    retry_id: str,
+    approved_by: str,
+) -> dict:
+    """
+    Submit a provisioning retry after explicit human confirmation.
+
+    Use this tool only after a retry draft has been prepared and the user/operator
+    has explicitly approved the retry action.
+    """
+    return submit_retry_tool(
+        retry_id=retry_id,
+        approved_by=approved_by,
+    )
 
 if __name__ == "__main__":
     mcp.run(transport="streamable-http")
