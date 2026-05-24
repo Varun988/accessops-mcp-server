@@ -358,19 +358,6 @@ Planned production enhancements:
 - Deployment on SAP BTP or cloud platform
 - Integration with real access management and workflow systems
 
-## Interview Explanation
-
-AccessOps MCP Server demonstrates how MCP can connect AI assistants to enterprise access management workflows.
-
-The project exposes domain-specific tools, resources, and prompts rather than generic backend APIs. This allows an AI assistant to safely discover capabilities, retrieve structured access request data, read policy context, follow approved troubleshooting workflows, and produce consistent support responses.
-
-The architecture separates MCP protocol concerns from business logic using MCP wrappers, internal tool functions, services, repositories, models, utilities, and data layers. This makes the project easier to test, maintain, and extend toward real enterprise integrations.
-
-The project also demonstrates production-level safety patterns such as structured error handling, audit logging with correlation IDs, repository-based backend abstraction, and human-in-the-loop approval before executing sensitive provisioning retry actions.
-
-## Resume Summary
-
-AccessOps MCP Server is a production-style MCP implementation for enterprise access request troubleshooting. It demonstrates real MCP client-server communication, tools, resources, prompts, structured errors, audit logging, repository abstraction, and human-approved action workflows.
 
 ## Status
 

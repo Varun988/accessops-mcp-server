@@ -22,7 +22,7 @@ All notable changes to AccessOps MCP Server will be documented in this file.
 - Added `.env.example` for supported environment variables.
 - Added dependency management through `requirements.txt`.
 - Added application version metadata.
-- Added project README with architecture, setup, and interview explanation.
+
 
 ### Current Capabilities
 
