@@ -45,3 +45,6 @@ MOCK_APPROVERS = {
 
 # Simulated retry draft store
 MOCK_RETRY_DRAFTS = {}
+
+# Simulated retry draft counter
+RETRY_DRAFT_COUNTER = 1

@@ -63,7 +63,18 @@ class ErrorUtils:
                 suggested_action="Prepare a provisioning retry first, then submit it after confirmation.",
             ).to_dict(),
         }
-
+    @staticmethod
+    def retry_already_processed(retry_id: str) -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="RETRY_ALREADY_PROCESSED",
+                message=f"Retry draft '{retry_id}' has already been processed.",
+                retryable=False,
+                suggested_action="Prepare a new provisioning retry draft if another retry is required.",
+            ).to_dict(),
+        }
+        
     @staticmethod
     def approval_required() -> dict:
         return {
@@ -75,3 +86,4 @@ class ErrorUtils:
                 suggested_action="Provide the approving user or operator before submitting the retry.",
             ).to_dict(),
         }
+

@@ -14,6 +14,8 @@ class ProvisioningRetryDraft:
         status: str,
         summary: str,
         created_at: datetime,
+        approved_by: str | None = None,
+        submitted_at: datetime | None = None,
     ):
         self.retry_id = retry_id
         self.request_id = request_id
@@ -23,6 +25,8 @@ class ProvisioningRetryDraft:
         self.status = status
         self.summary = summary
         self.created_at = created_at
+        self.approved_by = approved_by
+        self.submitted_at = submitted_at
 
     def to_dict(self) -> dict:
         """Convert retry draft to dictionary."""
@@ -35,4 +39,6 @@ class ProvisioningRetryDraft:
             "status": self.status,
             "summary": self.summary,
             "created_at": self.created_at.isoformat(),
+            "approved_by": self.approved_by,
+            "submitted_at": self.submitted_at.isoformat() if self.submitted_at else None,
         }

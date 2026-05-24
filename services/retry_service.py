@@ -76,24 +76,33 @@ class RetryService:
             dict: Retry execution result
 
         Raises:
-            ValueError: If retry draft is not found or approval is missing
+            ValueError: If retry draft is not found, already processed, or approval is missing
         """
         retry_draft = MOCK_RETRY_DRAFTS.get(retry_id)
 
         if not retry_draft:
             raise ValueError(f"Retry draft '{retry_id}' not found")
 
-        if not approved_by:
+        if not approved_by or not approved_by.strip():
             raise ValueError("Approval is required before submitting provisioning retry")
 
+        if retry_draft.status != "Prepared":
+            raise ValueError(f"Retry draft '{retry_id}' has already been processed")
+
         retry_draft.status = "Submitted"
+        retry_draft.requires_confirmation = False
+        retry_draft.approved_by = approved_by
+        retry_draft.submitted_at = datetime.utcnow()
 
         return {
             "retry_id": retry_id,
             "request_id": retry_draft.request_id,
             "action": retry_draft.action,
+            "risk_level": retry_draft.risk_level,
             "status": retry_draft.status,
-            "approved_by": approved_by,
+            "requires_confirmation": retry_draft.requires_confirmation,
+            "approved_by": retry_draft.approved_by,
+            "submitted_at": retry_draft.submitted_at.isoformat(),
             "message": (
                 f"Provisioning retry for request {retry_draft.request_id} "
                 f"has been submitted after approval by {approved_by}."
