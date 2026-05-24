@@ -109,6 +109,8 @@ def run_test():
     if result10.get("success"):
         ticket_draft_id = result10["data"]["ticket_draft_id"]
 
+    created_ticket_id = None
+
     print_section("TEST 11: SUBMIT TICKET AFTER CONFIRMATION")
     if ticket_draft_id:
         result11 = registry.execute_tool(
@@ -117,6 +119,9 @@ def run_test():
             approved_by="varun.kumar",
         )
         print(result11)
+
+        if result11.get("success"):
+            created_ticket_id = result11["data"]["ticket_id"]
     else:
         print("Skipping ticket submission because ticket draft creation failed.")
 
@@ -240,6 +245,109 @@ def run_test():
         print(result19)
     else:
         print("Skipping notification approval-required test because draft preparation failed.")
+
+    print_section("TEST 20: PREPARE TICKET CLOSURE")
+    closure_draft_id = None
+
+    if created_ticket_id:
+        result20 = registry.execute_tool(
+            "prepare_ticket_closure",
+            ticket_id=created_ticket_id,
+            closure_reason="Issue resolved",
+            resolution_summary="Access provisioning issue was reviewed and ticket can be closed.",
+        )
+        print(result20)
+
+        if result20.get("success"):
+            closure_draft_id = result20["data"]["closure_draft_id"]
+    else:
+        print("Skipping ticket closure preparation because ticket creation failed.")
+
+    print_section("TEST 21: SUBMIT TICKET CLOSURE AFTER CONFIRMATION")
+    if closure_draft_id:
+        result21 = registry.execute_tool(
+            "submit_ticket_closure_after_confirmation",
+            closure_draft_id=closure_draft_id,
+            approved_by="varun.kumar",
+        )
+        print(result21)
+    else:
+        print("Skipping ticket closure submission because closure draft preparation failed.")
+
+    print_section("TEST 21A: SUBMIT SAME TICKET CLOSURE AGAIN")
+    if closure_draft_id:
+        result21a = registry.execute_tool(
+            "submit_ticket_closure_after_confirmation",
+            closure_draft_id=closure_draft_id,
+            approved_by="varun.kumar",
+        )
+        print(result21a)
+    else:
+        print("Skipping duplicate ticket closure because closure draft preparation failed.")
+
+    print_section("TEST 22: PREPARE CLOSURE FOR ALREADY CLOSED TICKET")
+    if created_ticket_id:
+        result22 = registry.execute_tool(
+            "prepare_ticket_closure",
+            ticket_id=created_ticket_id,
+        )
+        print(result22)
+    else:
+        print("Skipping already-closed ticket test because ticket creation failed.")
+
+    print_section("TEST 23: PREPARE CLOSURE FOR NON-EXISTING TICKET")
+    result23 = registry.execute_tool(
+        "prepare_ticket_closure",
+        ticket_id="INC-DOESNOTEXIST",
+    )
+    print(result23)
+
+    print_section("TEST 24: SUBMIT NON-EXISTING CLOSURE DRAFT")
+    result24 = registry.execute_tool(
+        "submit_ticket_closure_after_confirmation",
+        closure_draft_id="CLOSURE-DRAFT-DOESNOTEXIST",
+        approved_by="varun.kumar",
+    )
+    print(result24)
+
+    print_section("TEST 25: SUBMIT CLOSURE WITHOUT APPROVAL")
+
+    second_ticket_draft = registry.execute_tool(
+        "prepare_ticket_creation",
+        request_id="REQ-1002",
+        title="Ticket for closure approval validation",
+        priority="Low",
+    )
+    print(second_ticket_draft)
+
+    second_ticket_id = None
+    if second_ticket_draft.get("success"):
+        second_ticket_submit = registry.execute_tool(
+            "submit_ticket_creation_after_confirmation",
+            ticket_draft_id=second_ticket_draft["data"]["ticket_draft_id"],
+            approved_by="varun.kumar",
+        )
+        print(second_ticket_submit)
+
+        if second_ticket_submit.get("success"):
+            second_ticket_id = second_ticket_submit["data"]["ticket_id"]
+
+    if second_ticket_id:
+        approval_test_closure = registry.execute_tool(
+            "prepare_ticket_closure",
+            ticket_id=second_ticket_id,
+        )
+        print(approval_test_closure)
+
+        if approval_test_closure.get("success"):
+            result25 = registry.execute_tool(
+                "submit_ticket_closure_after_confirmation",
+                closure_draft_id=approval_test_closure["data"]["closure_draft_id"],
+                approved_by="",
+            )
+            print(result25)
+    else:
+        print("Skipping closure approval-required test because second ticket creation failed.")
 
 if __name__ == "__main__":
     run_test()

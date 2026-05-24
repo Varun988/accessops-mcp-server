@@ -54,6 +54,53 @@ SUBMIT_TICKET_CREATION_METADATA = {
     },
 }
 
+PREPARE_TICKET_CLOSURE_METADATA = {
+    "name": "prepare_ticket_closure",
+    "description": (
+        "Prepare a ticket closure draft. "
+        "This does not close the ticket and requires explicit human confirmation."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "ticket_id": {
+                "type": "string",
+                "description": "Ticket ID to close, for example INC-12345678",
+            },
+            "closure_reason": {
+                "type": "string",
+                "description": "Optional reason for closing the ticket",
+            },
+            "resolution_summary": {
+                "type": "string",
+                "description": "Optional resolution summary for the ticket",
+            },
+        },
+        "required": ["ticket_id"],
+    },
+}
+
+
+SUBMIT_TICKET_CLOSURE_METADATA = {
+    "name": "submit_ticket_closure_after_confirmation",
+    "description": (
+        "Close a ticket from a prepared closure draft after explicit human confirmation."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "closure_draft_id": {
+                "type": "string",
+                "description": "Closure draft ID returned by prepare_ticket_closure",
+            },
+            "approved_by": {
+                "type": "string",
+                "description": "User/operator who approved ticket closure",
+            },
+        },
+        "required": ["closure_draft_id", "approved_by"],
+    },
+}
 
 def prepare_ticket_creation(
     request_id: str,
@@ -177,6 +224,141 @@ def submit_ticket_creation_after_confirmation(
         AuditLogger.log_tool_call(
             tool_name="submit_ticket_creation_after_confirmation",
             request_id=ticket_draft_id,
+            status="failure",
+        )
+
+        return ErrorUtils.generic_error(str(e))
+
+def prepare_ticket_closure(
+    ticket_id: str,
+    closure_reason: str | None = None,
+    resolution_summary: str | None = None,
+) -> dict:
+    """
+    MCP Tool: Prepare ticket closure draft.
+
+    Description:
+        Use this tool when a user wants to close an existing ticket.
+        This tool does not close the ticket immediately. It prepares a
+        closure draft and requires human confirmation.
+
+    Args:
+        ticket_id (str): Ticket ID
+        closure_reason (str | None): Optional closure reason
+        resolution_summary (str | None): Optional resolution summary
+
+    Returns:
+        dict: Prepared ticket closure draft or structured error
+    """
+    try:
+        closure_draft = ticket_service.prepare_ticket_closure(
+            ticket_id=ticket_id,
+            closure_reason=closure_reason,
+            resolution_summary=resolution_summary,
+        )
+
+        AuditLogger.log_tool_call(
+            tool_name="prepare_ticket_closure",
+            request_id=ticket_id,
+            status="success",
+        )
+
+        return {
+            "success": True,
+            "data": closure_draft.to_dict(),
+        }
+
+    except ValueError as e:
+        AuditLogger.log_tool_call(
+            tool_name="prepare_ticket_closure",
+            request_id=ticket_id,
+            status="failure",
+        )
+
+        error_message = str(e).lower()
+
+        if "not found" in error_message:
+            return ErrorUtils.ticket_not_found(ticket_id)
+
+        if "already closed" in error_message:
+            return ErrorUtils.ticket_already_closed(ticket_id)
+
+        return ErrorUtils.generic_error(str(e))
+
+    except Exception as e:
+        AuditLogger.log_tool_call(
+            tool_name="prepare_ticket_closure",
+            request_id=ticket_id,
+            status="failure",
+        )
+
+        return ErrorUtils.generic_error(str(e))
+
+def submit_ticket_closure_after_confirmation(
+    closure_draft_id: str,
+    approved_by: str,
+) -> dict:
+    """
+    MCP Tool: Submit ticket closure after human confirmation.
+
+    Description:
+        Use this tool only after a closure draft has been prepared and
+        the user/operator has explicitly approved ticket closure.
+
+    Args:
+        closure_draft_id (str): Ticket closure draft ID
+        approved_by (str): User/operator who approved ticket closure
+
+    Returns:
+        dict: Closed ticket details or structured error
+    """
+    try:
+        result = ticket_service.submit_ticket_closure_after_confirmation(
+            closure_draft_id=closure_draft_id,
+            approved_by=approved_by,
+        )
+
+        AuditLogger.log_tool_call(
+            tool_name="submit_ticket_closure_after_confirmation",
+            request_id=result["ticket_id"],
+            status="success",
+        )
+
+        return {
+            "success": True,
+            "data": result,
+        }
+
+    except ValueError as e:
+        error_message = str(e).lower()
+
+        AuditLogger.log_tool_call(
+            tool_name="submit_ticket_closure_after_confirmation",
+            request_id=closure_draft_id,
+            status="failure",
+        )
+
+        if "closure draft" in error_message and "not found" in error_message:
+            return ErrorUtils.ticket_closure_draft_not_found(closure_draft_id)
+
+        if "approval is required" in error_message:
+            return ErrorUtils.ticket_closure_approval_required()
+
+        if "already been processed" in error_message:
+            return ErrorUtils.ticket_closure_already_processed(closure_draft_id)
+
+        if "already closed" in error_message:
+            return ErrorUtils.ticket_already_closed(closure_draft_id)
+
+        if "ticket" in error_message and "not found" in error_message:
+            return ErrorUtils.ticket_not_found(closure_draft_id)
+
+        return ErrorUtils.generic_error(str(e))
+
+    except Exception as e:
+        AuditLogger.log_tool_call(
+            tool_name="submit_ticket_closure_after_confirmation",
+            request_id=closure_draft_id,
             status="failure",
         )
 

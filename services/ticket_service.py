@@ -1,8 +1,12 @@
 from datetime import datetime
 from uuid import uuid4
 
-from data.mock_data import MOCK_TICKET_DRAFTS, MOCK_CREATED_TICKETS
-from models.ticket_model import TicketCreationDraft
+from data.mock_data import (
+    MOCK_TICKET_DRAFTS,
+    MOCK_CREATED_TICKETS,
+    MOCK_TICKET_CLOSURE_DRAFTS,
+)
+from models.ticket_model import TicketCreationDraft, TicketClosureDraft
 from services.request_service import RequestService
 
 
@@ -158,3 +162,124 @@ class TicketService:
             return "Medium"
 
         return "Low"
+    
+    def prepare_ticket_closure(
+        self,
+        ticket_id: str,
+        closure_reason: str | None = None,
+        resolution_summary: str | None = None,
+    ) -> TicketClosureDraft:
+        """
+        Prepare a ticket closure draft.
+
+        This method does not close the ticket immediately. It only creates
+        a closure draft that requires explicit human confirmation.
+
+        Args:
+            ticket_id (str): Ticket ID to close
+            closure_reason (str | None): Optional closure reason
+            resolution_summary (str | None): Optional resolution summary
+
+        Returns:
+            TicketClosureDraft: Prepared ticket closure draft
+
+        Raises:
+            ValueError: If ticket is not found or ticket is already closed
+        """
+        ticket = MOCK_CREATED_TICKETS.get(ticket_id)
+
+        if not ticket:
+            raise ValueError(f"Ticket '{ticket_id}' not found")
+
+        if ticket.get("status") == "Closed":
+            raise ValueError(f"Ticket '{ticket_id}' is already closed")
+
+        closure_draft_id = f"CLOSURE-DRAFT-{ticket_id}-{str(uuid4())[:8]}"
+
+        resolved_closure_reason = closure_reason or "Issue resolved"
+        resolved_resolution_summary = resolution_summary or (
+            f"Ticket {ticket_id} is ready for closure. "
+            f"Access request {ticket['request_id']} has been reviewed and no further action is pending."
+        )
+
+        closure_draft = TicketClosureDraft(
+            closure_draft_id=closure_draft_id,
+            ticket_id=ticket_id,
+            request_id=ticket["request_id"],
+            closure_reason=resolved_closure_reason,
+            resolution_summary=resolved_resolution_summary,
+            status="Prepared",
+            requires_confirmation=True,
+            created_at=datetime.utcnow(),
+        )
+
+        MOCK_TICKET_CLOSURE_DRAFTS[closure_draft_id] = closure_draft
+
+        return closure_draft
+
+    def submit_ticket_closure_after_confirmation(
+        self,
+        closure_draft_id: str,
+        approved_by: str,
+    ) -> dict:
+        """
+        Close a ticket after human confirmation.
+
+        Args:
+            closure_draft_id (str): Ticket closure draft ID
+            approved_by (str): User/operator who approved ticket closure
+
+        Returns:
+            dict: Closed ticket details
+
+        Raises:
+            ValueError: If closure draft is not found, approval is missing,
+                draft is already processed, or ticket is not found
+        """
+        closure_draft = MOCK_TICKET_CLOSURE_DRAFTS.get(closure_draft_id)
+
+        if not closure_draft:
+            raise ValueError(f"Ticket closure draft '{closure_draft_id}' not found")
+
+        if not approved_by or not approved_by.strip():
+            raise ValueError("Approval is required before closing ticket")
+
+        if closure_draft.status != "Prepared":
+            raise ValueError(
+                f"Ticket closure draft '{closure_draft_id}' has already been processed"
+            )
+
+        ticket = MOCK_CREATED_TICKETS.get(closure_draft.ticket_id)
+
+        if not ticket:
+            raise ValueError(f"Ticket '{closure_draft.ticket_id}' not found")
+
+        if ticket.get("status") == "Closed":
+            raise ValueError(f"Ticket '{closure_draft.ticket_id}' is already closed")
+
+        closure_draft.status = "Closed"
+        closure_draft.requires_confirmation = False
+        closure_draft.approved_by = approved_by
+        closure_draft.submitted_at = datetime.utcnow()
+
+        ticket["status"] = "Closed"
+        ticket["closure_reason"] = closure_draft.closure_reason
+        ticket["resolution_summary"] = closure_draft.resolution_summary
+        ticket["closed_by"] = approved_by
+        ticket["closed_at"] = closure_draft.submitted_at.isoformat()
+
+        return {
+            "closure_draft_id": closure_draft_id,
+            "ticket_id": closure_draft.ticket_id,
+            "request_id": closure_draft.request_id,
+            "status": ticket["status"],
+            "closure_reason": closure_draft.closure_reason,
+            "resolution_summary": closure_draft.resolution_summary,
+            "requires_confirmation": closure_draft.requires_confirmation,
+            "approved_by": closure_draft.approved_by,
+            "closed_at": ticket["closed_at"],
+            "message": (
+                f"Ticket {closure_draft.ticket_id} has been closed after approval by "
+                f"{approved_by}."
+            ),
+        }

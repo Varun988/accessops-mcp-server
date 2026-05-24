@@ -19,6 +19,10 @@ from tools.ticket_tool import (
     PREPARE_TICKET_CREATION_METADATA,
     submit_ticket_creation_after_confirmation,
     SUBMIT_TICKET_CREATION_METADATA,
+    prepare_ticket_closure,
+    PREPARE_TICKET_CLOSURE_METADATA,
+    submit_ticket_closure_after_confirmation,
+    SUBMIT_TICKET_CLOSURE_METADATA,
 )
 
 from tools.access_request_tool import (
@@ -110,6 +114,19 @@ class ToolRegistry:
             send_notification_after_confirmation,
             SEND_NOTIFICATION_METADATA,
         )
+
+        self.register_tool(
+            PREPARE_TICKET_CLOSURE_METADATA["name"],
+            prepare_ticket_closure,
+            PREPARE_TICKET_CLOSURE_METADATA,
+        )
+
+        self.register_tool(
+            SUBMIT_TICKET_CLOSURE_METADATA["name"],
+            submit_ticket_closure_after_confirmation,
+            SUBMIT_TICKET_CLOSURE_METADATA,
+        )
+
 
     def register_tool(self, name: str, function, metadata: dict) -> None:
         self.tools[name] = {

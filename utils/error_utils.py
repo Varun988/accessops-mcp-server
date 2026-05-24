@@ -157,3 +157,64 @@ class ErrorUtils:
                 suggested_action="Provide the approving user or operator before sending the notification.",
             ).to_dict(),
         }
+
+
+    @staticmethod
+    def ticket_not_found(ticket_id: str) -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="TICKET_NOT_FOUND",
+                message=f"Ticket '{ticket_id}' was not found.",
+                retryable=False,
+                suggested_action="Verify the ticket ID and try again.",
+            ).to_dict(),
+        }
+
+    @staticmethod
+    def ticket_closure_draft_not_found(closure_draft_id: str) -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="TICKET_CLOSURE_DRAFT_NOT_FOUND",
+                message=f"Ticket closure draft '{closure_draft_id}' was not found.",
+                retryable=False,
+                suggested_action="Prepare a ticket closure draft first, then submit it after confirmation.",
+            ).to_dict(),
+        }
+
+    @staticmethod
+    def ticket_closure_already_processed(closure_draft_id: str) -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="TICKET_CLOSURE_ALREADY_PROCESSED",
+                message=f"Ticket closure draft '{closure_draft_id}' has already been processed.",
+                retryable=False,
+                suggested_action="Prepare a new ticket closure draft if another closure action is required.",
+            ).to_dict(),
+        }
+
+    @staticmethod
+    def ticket_already_closed(ticket_id: str) -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="TICKET_ALREADY_CLOSED",
+                message=f"Ticket '{ticket_id}' is already closed.",
+                retryable=False,
+                suggested_action="No further closure action is required for this ticket.",
+            ).to_dict(),
+        }
+
+    @staticmethod
+    def ticket_closure_approval_required() -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="TICKET_CLOSURE_APPROVAL_REQUIRED",
+                message="Human approval is required before closing the ticket.",
+                retryable=False,
+                suggested_action="Provide the approving user or operator before submitting ticket closure.",
+            ).to_dict(),
+        }
