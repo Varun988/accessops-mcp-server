@@ -54,3 +54,9 @@ MOCK_TICKET_DRAFTS = {}
 
 # Simulated created tickets store
 MOCK_CREATED_TICKETS = {}
+
+# Simulated notification draft store
+MOCK_NOTIFICATION_DRAFTS = {}
+
+# Simulated sent notifications store
+MOCK_SENT_NOTIFICATIONS = {}

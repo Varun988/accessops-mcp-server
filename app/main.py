@@ -168,5 +168,78 @@ def run_test():
         print("Skipping approval-required test because ticket draft creation failed.")
 
 
+    print_section("TEST 15: PREPARE NOTIFICATION")
+    result15 = registry.execute_tool(
+        "prepare_notification",
+        request_id="REQ-1003",
+        recipient="identity_ops_team",
+        channel="teams",
+        subject="Provisioning failure requires attention",
+        message="Access request REQ-1003 failed during provisioning. Please review and take necessary action.",
+    )
+    print(result15)
+
+    notification_draft_id = None
+    if result15.get("success"):
+        notification_draft_id = result15["data"]["notification_draft_id"]
+
+    print_section("TEST 16: SEND NOTIFICATION AFTER CONFIRMATION")
+    if notification_draft_id:
+        result16 = registry.execute_tool(
+            "send_notification_after_confirmation",
+            notification_draft_id=notification_draft_id,
+            approved_by="varun.kumar",
+        )
+        print(result16)
+    else:
+        print("Skipping notification send because notification draft preparation failed.")
+
+    print_section("TEST 16A: SEND SAME NOTIFICATION AGAIN")
+    if notification_draft_id:
+        result16a = registry.execute_tool(
+            "send_notification_after_confirmation",
+            notification_draft_id=notification_draft_id,
+            approved_by="varun.kumar",
+        )
+        print(result16a)
+    else:
+        print("Skipping duplicate notification send because notification draft preparation failed.")
+
+    print_section("TEST 17: PREPARE NOTIFICATION FOR INVALID REQUEST")
+    result17 = registry.execute_tool(
+        "prepare_notification",
+        request_id="REQ-9999",
+        recipient="identity_ops_team",
+        channel="email",
+    )
+    print(result17)
+
+    print_section("TEST 18: SEND NON-EXISTING NOTIFICATION DRAFT")
+    result18 = registry.execute_tool(
+        "send_notification_after_confirmation",
+        notification_draft_id="NOTIFICATION-DRAFT-9999",
+        approved_by="varun.kumar",
+    )
+    print(result18)
+
+    print_section("TEST 19: SEND NOTIFICATION WITHOUT APPROVAL")
+    result19_prepare = registry.execute_tool(
+        "prepare_notification",
+        request_id="REQ-1001",
+    )
+    print(result19_prepare)
+
+    if result19_prepare.get("success"):
+        approval_test_notification_id = result19_prepare["data"]["notification_draft_id"]
+
+        result19 = registry.execute_tool(
+            "send_notification_after_confirmation",
+            notification_draft_id=approval_test_notification_id,
+            approved_by="",
+        )
+        print(result19)
+    else:
+        print("Skipping notification approval-required test because draft preparation failed.")
+
 if __name__ == "__main__":
     run_test()

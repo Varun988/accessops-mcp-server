@@ -122,3 +122,38 @@ class ErrorUtils:
                 suggested_action="Provide the approving user or operator before submitting ticket creation.",
             ).to_dict(),
         }
+    @staticmethod
+    def notification_draft_not_found(notification_draft_id: str) -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="NOTIFICATION_DRAFT_NOT_FOUND",
+                message=f"Notification draft '{notification_draft_id}' was not found.",
+                retryable=False,
+                suggested_action="Prepare a notification draft first, then send it after confirmation.",
+            ).to_dict(),
+        }
+
+    @staticmethod
+    def notification_already_processed(notification_draft_id: str) -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="NOTIFICATION_ALREADY_PROCESSED",
+                message=f"Notification draft '{notification_draft_id}' has already been processed.",
+                retryable=False,
+                suggested_action="Prepare a new notification draft if another notification is required.",
+            ).to_dict(),
+        }
+
+    @staticmethod
+    def notification_approval_required() -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="NOTIFICATION_APPROVAL_REQUIRED",
+                message="Human approval is required before sending the notification.",
+                retryable=False,
+                suggested_action="Provide the approving user or operator before sending the notification.",
+            ).to_dict(),
+        }
