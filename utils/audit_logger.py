@@ -1,9 +1,14 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
+from database.db_initializer import DatabaseInitializer
+from repositories.sqlite_audit_repository import SQLiteAuditRepository
+
 
 class AuditLogger:
     """Utility class for writing audit events."""
+
+    audit_repository = SQLiteAuditRepository()
 
     @staticmethod
     def log_tool_call(
@@ -18,7 +23,7 @@ class AuditLogger:
 
         Args:
             tool_name (str): Name of the MCP tool.
-            request_id (str): Access request ID.
+            request_id (str): Access request ID or related entity ID.
             status (str): Execution status such as success or failure.
             event_type (str): Type of audit event.
             correlation_id (str | None): Optional correlation ID.
@@ -26,6 +31,8 @@ class AuditLogger:
         Returns:
             str: Correlation ID used for this audit event.
         """
+        DatabaseInitializer.initialize()
+
         correlation_id = correlation_id or str(uuid4())
 
         audit_event = {
@@ -38,5 +45,7 @@ class AuditLogger:
         }
 
         print(f"AUDIT_EVENT: {audit_event}")
+
+        AuditLogger.audit_repository.save_audit_event(audit_event)
 
         return correlation_id

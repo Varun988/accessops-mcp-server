@@ -1,23 +1,30 @@
 from datetime import datetime
 from uuid import uuid4
 
-from data.mock_data import MOCK_RETRY_DRAFTS
 from models.retry_model import ProvisioningRetryDraft
-from services.request_service import RequestService
+from repositories.retry_repository import RetryRepository
+from repositories.sqlite_retry_repository import SQLiteRetryRepository
 from services.authorization_service import AuthorizationService
+from services.request_service import RequestService
 
 
 class RetryService:
     """Service layer for preparing and submitting provisioning retry actions."""
 
-    def __init__(self, request_service: RequestService | None = None):
+    def __init__(
+        self,
+        request_service: RequestService | None = None,
+        retry_repository: RetryRepository | None = None,
+    ):
         """
         Initialize retry service.
 
         Args:
             request_service (RequestService | None): Optional request service dependency.
+            retry_repository (RetryRepository | None): Optional retry repository dependency.
         """
         self.request_service = request_service or RequestService()
+        self.retry_repository = retry_repository or SQLiteRetryRepository()
 
     def prepare_provisioning_retry(self, request_id: str) -> ProvisioningRetryDraft:
         """
@@ -57,7 +64,7 @@ class RetryService:
             created_at=datetime.utcnow(),
         )
 
-        MOCK_RETRY_DRAFTS[retry_id] = retry_draft
+        self.retry_repository.save_retry_draft(retry_draft)
 
         return retry_draft
 
@@ -78,8 +85,9 @@ class RetryService:
 
         Raises:
             ValueError: If retry draft is not found, already processed, or approval is missing
+            PermissionError: If approving user does not have required permission
         """
-        retry_draft = MOCK_RETRY_DRAFTS.get(retry_id)
+        retry_draft = self.retry_repository.get_retry_draft_by_id(retry_id)
 
         if not retry_draft:
             raise ValueError(f"Retry draft '{retry_id}' not found")
@@ -99,6 +107,8 @@ class RetryService:
         retry_draft.requires_confirmation = False
         retry_draft.approved_by = approved_by
         retry_draft.submitted_at = datetime.utcnow()
+
+        self.retry_repository.update_retry_draft(retry_draft)
 
         return {
             "retry_id": retry_id,
