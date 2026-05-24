@@ -2,7 +2,7 @@
 
 AccessOps MCP Server is a production-style **Model Context Protocol (MCP)** project built in Python. It demonstrates how an AI assistant can safely interact with enterprise access-operation workflows using MCP tools, resources, prompts, structured error handling, audit logging, human-in-the-loop approvals, and role-based authorization.
 
-This project is designed as a beginner-friendly learning project and also as a resume-worthy implementation that shows how MCP can be used in real enterprise scenarios.
+This project is designed as a beginner-friendly learning project  that shows how MCP can be used in real enterprise scenarios.
 
 ---
 
@@ -36,8 +36,7 @@ This project is designed as a beginner-friendly learning project and also as a r
 26. [Development Journey](#development-journey)
 27. [How to Add a New Tool](#how-to-add-a-new-tool)
 28. [Production Readiness Roadmap](#production-readiness-roadmap)
-29. [Resume and Interview Explanation](#resume-and-interview-explanation)
-30. [Current Status](#current-status)
+29. [Current Status](#current-status)
 
 ---
 
