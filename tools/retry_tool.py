@@ -157,6 +157,18 @@ def submit_provisioning_retry_after_confirmation(
             return ErrorUtils.retry_already_processed(retry_id)
 
         return ErrorUtils.generic_error(error_message)
+    
+    except PermissionError:
+        AuditLogger.log_tool_call(
+            tool_name="submit_provisioning_retry_after_confirmation",
+            request_id=retry_id,
+            status="failure",
+        )
+
+        return ErrorUtils.authorization_failed(
+            user_id=approved_by,
+            permission="provisioning:retry",
+        )
 
     except Exception as e:
         AuditLogger.log_tool_call(

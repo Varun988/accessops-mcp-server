@@ -187,7 +187,18 @@ def send_notification_after_confirmation(
             return ErrorUtils.notification_already_processed(notification_draft_id)
 
         return ErrorUtils.generic_error(error_message)
+    except PermissionError:
+        AuditLogger.log_tool_call(
+            tool_name="send_notification_after_confirmation",
+            request_id=notification_draft_id,
+            status="failure",
+        )
 
+        return ErrorUtils.authorization_failed(
+            user_id=approved_by,
+            permission="notification:send",
+        )
+        
     except Exception as e:
         AuditLogger.log_tool_call(
             tool_name="send_notification_after_confirmation",

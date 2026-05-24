@@ -218,3 +218,18 @@ class ErrorUtils:
                 suggested_action="Provide the approving user or operator before submitting ticket closure.",
             ).to_dict(),
         }
+
+    @staticmethod
+    def authorization_failed(user_id: str, permission: str) -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="AUTHORIZATION_FAILED",
+                message=(
+                    f"User '{user_id}' is not authorized to perform this action. "
+                    f"Required permission: '{permission}'."
+                ),
+                retryable=False,
+                suggested_action="Use an authorized operator or request the required access.",
+            ).to_dict(),
+        }

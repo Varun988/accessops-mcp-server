@@ -8,7 +8,7 @@ from data.mock_data import (
 )
 from models.ticket_model import TicketCreationDraft, TicketClosureDraft
 from services.request_service import RequestService
-
+from services.authorization_service import AuthorizationService
 
 class TicketService:
     """Service layer for preparing and submitting ticket creation actions."""
@@ -110,6 +110,11 @@ class TicketService:
 
         if not approved_by or not approved_by.strip():
             raise ValueError("Approval is required before creating ticket")
+
+        AuthorizationService.require_permission(
+            user_id=approved_by,
+            permission="ticket:create",
+        )
 
         if ticket_draft.status != "Prepared":
             raise ValueError(f"Ticket draft '{ticket_draft_id}' has already been processed")

@@ -1,310 +1,464 @@
 # AccessOps MCP Server
 
-A production-style **Model Context Protocol (MCP)** server for enterprise access request troubleshooting, approval analysis, operational runbooks, and safe human-approved write actions.
+AccessOps MCP Server is a production-style **Model Context Protocol (MCP)** project built in Python. It demonstrates how an AI assistant can safely interact with enterprise access-operation workflows using MCP tools, resources, prompts, structured error handling, audit logging, human-in-the-loop approvals, and role-based authorization.
 
-AccessOps MCP Server demonstrates how an AI assistant can securely interact with enterprise access-management workflows by using MCP tools, resources, and prompts. The project is intentionally designed as a beginner-friendly learning project and a resume-worthy implementation that shows real-world architecture patterns such as layered design, repository abstraction, structured errors, audit logging, and human-in-the-loop action control.
+This project is designed as a beginner-friendly learning project and also as a resume-worthy implementation that shows how MCP can be used in real enterprise scenarios.
 
 ---
 
 ## Table of Contents
 
-1. [Project Overview](#project-overview)
-2. [Why This Project Exists](#why-this-project-exists)
-3. [What Is MCP?](#what-is-mcp)
-4. [What This Project Demonstrates](#what-this-project-demonstrates)
-5. [Real-World Use Case](#real-world-use-case)
-6. [Current Capabilities](#current-capabilities)
-7. [How the System Works](#how-the-system-works)
-8. [Architecture](#architecture)
-9. [Project Structure](#project-structure)
-10. [Core Design Principles](#core-design-principles)
-11. [MCP Tools](#mcp-tools)
-12. [MCP Resources](#mcp-resources)
-13. [MCP Prompts](#mcp-prompts)
-14. [Human-in-the-Loop Write Workflow](#human-in-the-loop-write-workflow)
-15. [Structured Error Handling](#structured-error-handling)
-16. [Audit Logging](#audit-logging)
-17. [Mock Data and Enterprise Replacement Strategy](#mock-data-and-enterprise-replacement-strategy)
-18. [Setup Instructions](#setup-instructions)
-19. [Running the Project](#running-the-project)
-20. [Testing the MCP-Style Tool Registry](#testing-the-mcp-style-tool-registry)
-21. [Running the Real MCP Server](#running-the-real-mcp-server)
-22. [Running the MCP Client Test](#running-the-mcp-client-test)
-23. [Example Outputs](#example-outputs)
-24. [How This Project Was Developed](#how-this-project-was-developed)
-25. [How to Extend This Project](#how-to-extend-this-project)
-26. [Production Readiness Roadmap](#production-readiness-roadmap)
-27. [Interview Explanation](#interview-explanation)
-28. [Current Status](#current-status)
+1. [Project Summary](#project-summary)
+2. [Problem Statement](#problem-statement)
+3. [What This Project Solves](#what-this-project-solves)
+4. [Beginner Explanation: What Is MCP?](#beginner-explanation-what-is-mcp)
+5. [Core MCP Concepts Used](#core-mcp-concepts-used)
+6. [Real-World Scenario](#real-world-scenario)
+7. [Current Features](#current-features)
+8. [Architecture Overview](#architecture-overview)
+9. [Layer-by-Layer Explanation](#layer-by-layer-explanation)
+10. [Project Structure](#project-structure)
+11. [How the Application Works](#how-the-application-works)
+12. [MCP Tools Implemented](#mcp-tools-implemented)
+13. [MCP Resources Implemented](#mcp-resources-implemented)
+14. [MCP Prompts Implemented](#mcp-prompts-implemented)
+15. [Human-in-the-Loop Write Action Design](#human-in-the-loop-write-action-design)
+16. [Role-Based Authorization](#role-based-authorization)
+17. [Structured Error Handling](#structured-error-handling)
+18. [Audit Logging](#audit-logging)
+19. [Mock Data Strategy](#mock-data-strategy)
+20. [How Mock Data Can Be Replaced in Enterprise](#how-mock-data-can-be-replaced-in-enterprise)
+21. [Setup Instructions](#setup-instructions)
+22. [Running Local Tool Tests](#running-local-tool-tests)
+23. [Running the MCP Server](#running-the-mcp-server)
+24. [Running the MCP Client Test](#running-the-mcp-client-test)
+25. [Important Test Scenarios](#important-test-scenarios)
+26. [Development Journey](#development-journey)
+27. [How to Add a New Tool](#how-to-add-a-new-tool)
+28. [Production Readiness Roadmap](#production-readiness-roadmap)
+29. [Resume and Interview Explanation](#resume-and-interview-explanation)
+30. [Current Status](#current-status)
 
 ---
 
-## Project Overview
+## Project Summary
 
-**AccessOps MCP Server** is a Python-based MCP server that exposes access-operations capabilities to AI assistants.
+**AccessOps MCP Server** is an MCP-based enterprise access operations assistant backend.
 
-The project focuses on a realistic enterprise problem:
+The server exposes controlled capabilities that allow an AI assistant to:
 
-> Users submit access requests, but those requests may get stuck in approval, fail during provisioning, or require manual operational follow-up.
+- Retrieve access request status
+- Find pending approvers
+- Diagnose access request issues
+- Read policy and runbook resources
+- Use standard troubleshooting prompts
+- Prepare and submit provisioning retries after approval
+- Prepare and create tickets after approval
+- Prepare and send notifications after approval
+- Prepare and close tickets after approval
+- Enforce role-based permissions for sensitive actions
+- Emit audit events for traceability
 
-This MCP server gives an AI assistant controlled access to:
-
-- Access request status
-- Pending approvers
-- Request diagnosis
-- Access approval policies
-- Provisioning failure runbooks
-- Standard troubleshooting prompts
-- Safe write actions such as preparing and submitting a provisioning retry after human confirmation
-
-The project currently uses mock enterprise data, but the architecture is designed so the mock layer can later be replaced with real enterprise systems such as identity governance platforms, workflow APIs, ticketing systems, databases, and logging platforms.
+The current implementation uses mock enterprise data, but the code is structured so that the mock layer can later be replaced with real APIs, databases, workflow engines, ticketing platforms, notification services, or identity governance systems.
 
 ---
 
-## Why This Project Exists
+## Problem Statement
 
-Enterprise identity and access-management teams often face questions such as:
+In large organizations, access requests often get delayed or fail because of:
+
+- Pending manager approval
+- Security or compliance approval delays
+- Provisioning failures
+- Missing target-system account mappings
+- Role mapping issues
+- Workflow errors
+- Lack of visibility for support teams
+
+Users and support teams frequently ask:
 
 ```text
-Why is my access request still pending?
-Who needs to approve this request?
+Why is my access request pending?
+Who needs to approve it?
 Did provisioning fail?
-Can this failed provisioning step be retried?
-What should I tell the requester?
-What policy applies to this access request?
+Can provisioning be retried?
+Can a support ticket be created?
+Can the requester be notified?
+Can the ticket be closed after resolution?
 ```
 
-Without AI assistance, support engineers usually need to check multiple systems:
-
-```text
-Access request system
-Approval workflow system
-Provisioning logs
-Policy documents
-Runbooks
-Ticketing systems
-Audit logs
-```
-
-AccessOps MCP Server demonstrates how MCP can connect an AI assistant to those systems in a safe, structured, auditable, and extensible way.
+Without automation, support engineers may need to manually inspect multiple systems. This project shows how MCP can provide an AI assistant with safe, structured, auditable access to these capabilities.
 
 ---
 
-## What Is MCP?
+## What This Project Solves
 
-**MCP**, or **Model Context Protocol**, is a protocol that allows AI applications to connect with external tools, data sources, and workflows in a standardized way.
+AccessOps MCP Server solves the problem of connecting an AI assistant to enterprise access operations in a controlled way.
 
-A simple mental model is:
+Instead of exposing raw APIs directly to an AI model, the project exposes **business-safe MCP tools** such as:
 
 ```text
+get_access_request_status
+diagnose_access_request
+prepare_provisioning_retry
+submit_provisioning_retry_after_confirmation
+prepare_ticket_creation
+submit_ticket_creation_after_confirmation
+prepare_notification
+send_notification_after_confirmation
+prepare_ticket_closure
+submit_ticket_closure_after_confirmation
+```
+
+This gives the AI assistant useful enterprise capabilities while still enforcing:
+
+- Human confirmation
+- Role-based authorization
+- Structured errors
+- Audit logging
+- Duplicate execution protection
+- Clear business boundaries
+
+---
+
+## Beginner Explanation: What Is MCP?
+
+**MCP** stands for **Model Context Protocol**.
+
+A simple way to understand MCP:
+
+```text
+MCP lets AI assistants safely connect to external tools, systems, and data sources.
+```
+
+Without MCP, every AI application would need custom integration code for every system.
+
+With MCP, the AI application talks to an MCP server, and the MCP server exposes controlled capabilities.
+
+Basic architecture:
+
+```text
+User
+  ↓
 AI Assistant / MCP Host
-        ↓
+  ↓
 MCP Client
-        ↓
+  ↓
 MCP Server
-        ↓
-Enterprise System / API / Database / Files / Tools
+  ↓
+External System / API / Database / Workflow
 ```
 
 In this project:
 
 ```text
+User
+  ↓
 AI Assistant
-        ↓
-MCP Client
-        ↓
+  ↓
 AccessOps MCP Server
-        ↓
-Access request data, approval data, retry workflow, policies, runbooks
-```
-
-MCP servers expose three important types of capabilities:
-
-| MCP Primitive | Meaning | Example in This Project |
-|---|---|---|
-| Tools | Functions/actions the AI can call | Get request status, diagnose request, prepare retry |
-| Resources | Read-only context the AI can read | Access policy, provisioning runbook, status code schema |
-| Prompts | Reusable workflow templates | Troubleshoot access request, generate requester response |
-
----
-
-## What This Project Demonstrates
-
-This project demonstrates both MCP concepts and production-style backend design.
-
-Key learning areas:
-
-- MCP server implementation
-- MCP tool discovery and invocation
-- MCP resource discovery and reading
-- MCP prompt discovery and retrieval
-- Tool registry design
-- Service layer design
-- Repository abstraction pattern
-- Mock-to-real backend replacement strategy
-- Structured error handling
-- Audit logging
-- Human-in-the-loop write actions
-- Modular code organization
-- Safe enterprise automation design
-
----
-
-## Real-World Use Case
-
-### Scenario
-
-A user asks an AI assistant:
-
-```text
-Why is access request REQ-1003 stuck?
-```
-
-The AI assistant can use the MCP server to:
-
-1. Get the request status.
-2. Check pending approvers.
-3. Diagnose whether the request is pending, in progress, or failed.
-4. Read policy or runbook resources.
-5. If provisioning failed, prepare a retry draft.
-6. Ask a human operator for confirmation.
-7. Submit the retry only after approval.
-8. Emit audit logs for traceability.
-
-### Example Flow
-
-```text
-User asks question
-        ↓
-AI assistant chooses relevant MCP tools
-        ↓
-MCP server executes controlled business capabilities
-        ↓
-Service layer applies business rules
-        ↓
-Repository layer reads/writes backend data
-        ↓
-AI assistant explains result to user
+  ↓
+Access request data, approval data, ticket workflow, retry workflow, notification workflow
 ```
 
 ---
 
-## Current Capabilities
+## Core MCP Concepts Used
 
-The current project supports:
+This project uses the three main MCP capability types.
+
+### 1. Tools
+
+Tools are functions that the AI assistant can call.
+
+Examples:
 
 ```text
-Read tools                     ✅
-Composite diagnostic tool       ✅
-MCP-style tool registry         ✅
-Real MCP server wrapper         ✅
-MCP resources                   ✅
-MCP prompts                     ✅
-Structured errors               ✅
-Audit logging                   ✅
-Human-approved retry workflow   ✅
-Repository abstraction          ✅
-Mock enterprise data            ✅
+get_access_request_status
+prepare_ticket_creation
+send_notification_after_confirmation
 ```
+
+Tools are used when the assistant needs to do something or retrieve computed data.
+
+### 2. Resources
+
+Resources are read-only pieces of context.
+
+Examples:
+
+```text
+policy://access/approval-rules
+runbook://identity/provisioning-failure
+schema://access-request/status-codes
+```
+
+Resources are used when the assistant needs reference information.
+
+### 3. Prompts
+
+Prompts are reusable workflow templates.
+
+Examples:
+
+```text
+troubleshoot_access_request
+generate_requester_response
+prepare_support_summary
+```
+
+Prompts help the assistant follow a consistent process.
 
 ---
 
-## How the System Works
+## Real-World Scenario
 
-At a high level, the system follows this flow:
-
-```text
-MCP Client or test runner
-        ↓
-Tool Registry
-        ↓
-Tool Function
-        ↓
-Service Layer
-        ↓
-Repository Interface
-        ↓
-Repository Implementation
-        ↓
-Mock Data / Future Enterprise Backend
-```
-
-For example, when `get_access_request_status` is called:
+Example user question:
 
 ```text
-ToolRegistry.execute_tool("get_access_request_status", request_id="REQ-1001")
-        ↓
-get_access_request_status()
-        ↓
-RequestService.get_request_by_id()
-        ↓
-MockRequestRepository.get_request_by_id()
-        ↓
-MOCK_ACCESS_REQUESTS
-        ↓
-AccessRequest.to_dict()
-        ↓
-Structured response returned
+Why is access request REQ-1003 stuck, and can we notify the support team?
 ```
 
-For a write action such as provisioning retry:
+The AI assistant can use the MCP server as follows:
 
 ```text
-prepare_provisioning_retry("REQ-1003")
-        ↓
-RetryService validates request status
-        ↓
-Retry draft is created
-        ↓
-Human confirmation required
-        ↓
-submit_provisioning_retry_after_confirmation(retry_id, approved_by)
-        ↓
-Retry is submitted
-        ↓
-Audit event is emitted
+1. Call get_access_request_status("REQ-1003")
+2. Call diagnose_access_request("REQ-1003")
+3. Read provisioning failure runbook
+4. Prepare notification draft
+5. Ask a human operator for confirmation
+6. Send notification after confirmation
+7. Emit audit logs
 ```
+
+If provisioning failed, the AI assistant can also prepare a retry action:
+
+```text
+1. prepare_provisioning_retry("REQ-1003")
+2. Show retry draft to operator
+3. submit_provisioning_retry_after_confirmation(retry_id, approved_by)
+```
+
+The AI does not directly execute sensitive operations. Every write action is reviewed and confirmed by a human.
 
 ---
 
-## Architecture
+## Current Features
+
+### Read and Diagnostic Features
+
+- Get access request status
+- Get pending approvers
+- Diagnose pending, in-progress, or failed requests
+- Read access approval policy
+- Read provisioning failure runbook
+- Read access request status-code reference
+- Retrieve workflow prompts
+
+### Write / Action Features
+
+All write actions use a two-step human approval pattern.
+
+- Prepare provisioning retry
+- Submit provisioning retry after confirmation
+- Prepare ticket creation
+- Submit ticket creation after confirmation
+- Prepare notification
+- Send notification after confirmation
+- Prepare ticket closure
+- Submit ticket closure after confirmation
+
+### Security and Reliability Features
+
+- Role-based authorization checks
+- Structured error responses
+- Audit logging with correlation IDs
+- Duplicate execution prevention
+- Modular service-based design
+- Repository abstraction
+- Mock-to-real backend replacement path
+
+---
+
+## Architecture Overview
+
+High-level architecture:
 
 ```text
 MCP Host / AI Assistant
         ↓
 MCP Client
         ↓
-Streamable HTTP Transport
-        ↓
 AccessOps MCP Server
         ↓
-MCP Tool / Resource / Prompt Wrappers
+Tool / Resource / Prompt Wrappers
         ↓
-Internal Tool Layer
+Tool Layer
         ↓
 Service Layer
         ↓
-Repository Interface
+Repository Layer
         ↓
-Repository Implementation
-        ↓
-Model Layer
-        ↓
-Mock Enterprise Data Layer
+Mock Data / Future Enterprise Backend
 ```
 
-### Layer Responsibilities
+Detailed internal flow:
 
-| Layer | Responsibility |
-|---|---|
-| `app/` | Application entry points, MCP server, client tests |
-| `tools/` | MCP-facing tool functions and metadata |
-| `services/` | Business logic and workflow rules |
-| `repositories/` | Data access abstraction |
-| `models/` | Domain objects and response models |
-| `data/` | Mock enterprise data and static resources |
-| `utils/` | Shared utilities such as audit logging and error handling |
-| `config/` | Configuration and versioning |
+```text
+User request
+  ↓
+AI assistant selects tool
+  ↓
+MCP server receives tool call
+  ↓
+Tool function validates input/output behavior
+  ↓
+Service applies business rules
+  ↓
+Repository retrieves or updates data
+  ↓
+Model converts response to dictionary
+  ↓
+Structured response returned
+  ↓
+Audit event emitted
+```
+
+---
+
+## Layer-by-Layer Explanation
+
+### `app/`
+
+Contains application entry points.
+
+Important files:
+
+```text
+main.py
+mcp_server.py
+mcp_client_test.py
+```
+
+Purpose:
+
+- Run local tests
+- Start MCP server
+- Run MCP client integration tests
+
+### `tools/`
+
+Contains MCP-facing tool wrappers.
+
+Important files:
+
+```text
+access_request_tool.py
+retry_tool.py
+ticket_tool.py
+notification_tool.py
+tool_registry.py
+```
+
+Purpose:
+
+- Define tool metadata
+- Define tool input schemas
+- Convert service results into MCP-friendly responses
+- Convert exceptions into structured errors
+- Register tools for discovery and execution
+
+### `services/`
+
+Contains business logic.
+
+Important files:
+
+```text
+request_service.py
+retry_service.py
+ticket_service.py
+notification_service.py
+authorization_service.py
+resource_service.py
+prompt_service.py
+```
+
+Purpose:
+
+- Apply business rules
+- Enforce human approval
+- Enforce RBAC permissions
+- Prevent duplicate execution
+- Coordinate repositories and models
+
+### `repositories/`
+
+Contains data-access abstraction.
+
+Important files:
+
+```text
+request_repository.py
+mock_request_repository.py
+```
+
+Purpose:
+
+- Hide whether data comes from mock data, database, or enterprise API
+- Make backend replacement easier
+
+### `models/`
+
+Contains domain objects.
+
+Important files:
+
+```text
+request_model.py
+retry_model.py
+ticket_model.py
+notification_model.py
+error_model.py
+```
+
+Purpose:
+
+- Represent access requests, retry drafts, ticket drafts, closure drafts, notification drafts, and errors
+- Provide `to_dict()` conversion for structured responses
+
+### `data/`
+
+Contains mock data.
+
+Important files:
+
+```text
+mock_data.py
+mock_auth_data.py
+resource_data.py
+```
+
+Purpose:
+
+- Simulate enterprise backend systems
+- Store mock requests, approvers, drafts, tickets, notifications, and authorization mappings
+
+### `utils/`
+
+Contains reusable helper logic.
+
+Important files:
+
+```text
+audit_logger.py
+error_utils.py
+```
+
+Purpose:
+
+- Generate structured error responses
+- Emit audit events
 
 ---
 
@@ -317,29 +471,37 @@ accessops_mcp/
 ├── requirements.txt
 ├── app/
 │   ├── main.py
-│   ├── mcp_server.py
-│   └── mcp_client_test.py
+│   ├── mcp_client_test.py
+│   └── mcp_server.py
 ├── config/
 │   ├── app_config.py
 │   └── version.py
 ├── data/
+│   ├── mock_auth_data.py
 │   ├── mock_data.py
 │   └── resource_data.py
 ├── models/
 │   ├── error_model.py
+│   ├── notification_model.py
 │   ├── request_model.py
-│   └── retry_model.py
+│   ├── retry_model.py
+│   └── ticket_model.py
 ├── repositories/
-│   ├── request_repository.py
-│   └── mock_request_repository.py
+│   ├── mock_request_repository.py
+│   └── request_repository.py
 ├── services/
+│   ├── authorization_service.py
+│   ├── notification_service.py
 │   ├── prompt_service.py
 │   ├── request_service.py
 │   ├── resource_service.py
-│   └── retry_service.py
+│   ├── retry_service.py
+│   └── ticket_service.py
 ├── tools/
 │   ├── access_request_tool.py
+│   ├── notification_tool.py
 │   ├── retry_tool.py
+│   ├── ticket_tool.py
 │   └── tool_registry.py
 └── utils/
     ├── audit_logger.py
@@ -348,112 +510,98 @@ accessops_mcp/
 
 ---
 
-## Core Design Principles
+## How the Application Works
 
-### 1. Business Capability-Based Tools
+### Example: Read Tool Flow
 
-The project does not expose generic unsafe tools such as:
-
-```text
-call_api(method, url, payload)
-query_database(sql)
-```
-
-Instead, the project exposes meaningful business capabilities:
+Tool:
 
 ```text
 get_access_request_status
-get_pending_approvers
-diagnose_access_request
-prepare_provisioning_retry
-submit_provisioning_retry_after_confirmation
 ```
 
-This makes the MCP server safer, easier to audit, and easier for an AI assistant to use correctly.
-
-### 2. Separation of Concerns
-
-Each layer has a clear responsibility:
+Flow:
 
 ```text
-Tool       → MCP-facing input/output
-Service    → Business logic
-Repository → Data access
-Model      → Domain structure
-Utility    → Shared support logic
+ToolRegistry.execute_tool("get_access_request_status")
+  ↓
+access_request_tool.get_access_request_status()
+  ↓
+RequestService.get_request_by_id()
+  ↓
+MockRequestRepository.get_request_by_id()
+  ↓
+MOCK_ACCESS_REQUESTS
+  ↓
+AccessRequest.to_dict()
+  ↓
+Structured response
 ```
 
-### 3. Repository Abstraction
+### Example: Write Tool Flow
 
-The service layer does not directly depend on mock data. Instead, the project uses repository abstractions so mock repositories can later be replaced with real backend repositories.
-
-Example:
+Tool:
 
 ```text
-RequestService
-        ↓
-RequestRepository interface
-        ↓
-MockRequestRepository today
-        ↓
-Enterprise API or database repository in future
+submit_ticket_creation_after_confirmation
 ```
 
-### 4. Human-in-the-Loop for Sensitive Actions
-
-Sensitive actions are not executed directly.
-
-Bad design:
+Flow:
 
 ```text
-retry_provisioning(request_id)
+ToolRegistry.execute_tool("submit_ticket_creation_after_confirmation")
+  ↓
+ticket_tool.submit_ticket_creation_after_confirmation()
+  ↓
+TicketService.submit_ticket_creation_after_confirmation()
+  ↓
+Approval check
+  ↓
+AuthorizationService.require_permission("ticket:create")
+  ↓
+Duplicate execution check
+  ↓
+Mock ticket creation
+  ↓
+Audit event
+  ↓
+Structured response
 ```
 
-Better design used in this project:
+---
 
-```text
-prepare_provisioning_retry(request_id)
-submit_provisioning_retry_after_confirmation(retry_id, approved_by)
-```
+## MCP Tools Implemented
 
-This pattern ensures that AI does not autonomously execute sensitive enterprise operations.
+### Access Request Tools
 
-### 5. Structured Errors
+#### `get_access_request_status`
 
-Errors are returned in a predictable format:
+Retrieves details for an access request.
+
+Input:
 
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "ACCESS_REQUEST_NOT_FOUND",
-    "message": "Access request 'REQ-9999' was not found.",
-    "retryable": false,
-    "suggested_action": "Verify the request ID and try again."
-  }
+  "request_id": "REQ-1001"
 }
 ```
 
-### 6. Auditability
-
-Every important tool call emits an audit event with:
+Output includes:
 
 ```text
-timestamp
-event_type
-tool_name
 request_id
+requester
+target_system
+role
 status
-correlation_id
+current_stage
+requested_at
+last_updated
 ```
 
----
+#### `get_pending_approvers`
 
-## MCP Tools
-
-### 1. `get_access_request_status`
-
-Retrieves the current status and details of an access request.
+Returns pending approvers for a request.
 
 Input:
 
@@ -463,166 +611,101 @@ Input:
 }
 ```
 
-Example response:
+#### `diagnose_access_request`
 
-```json
-{
-  "success": true,
-  "data": {
-    "request_id": "REQ-1001",
-    "requester": "varun.kumar",
-    "target_system": "SAP_FINANCE",
-    "role": "FIN_DISPLAY",
-    "status": "Pending",
-    "current_stage": "Manager Approval",
-    "requested_at": "2026-05-20T10:30:00",
-    "last_updated": "2026-05-20T10:45:00"
-  }
-}
-```
+Combines request status and approval data to provide a business diagnosis.
 
 ---
 
-### 2. `get_pending_approvers`
+### Provisioning Retry Tools
 
-Returns users or teams that need to approve the access request.
+#### `prepare_provisioning_retry`
 
-Input:
-
-```json
-{
-  "request_id": "REQ-1001"
-}
-```
-
-Example response:
-
-```json
-{
-  "success": true,
-  "data": {
-    "request_id": "REQ-1001",
-    "pending_approvers": [
-      "manager_raj",
-      "security_team"
-    ]
-  }
-}
-```
-
----
-
-### 3. `diagnose_access_request`
-
-Combines request status and approval information to generate a business-level diagnosis.
-
-Input:
-
-```json
-{
-  "request_id": "REQ-1001"
-}
-```
-
-Example response:
-
-```json
-{
-  "success": true,
-  "data": {
-    "request_id": "REQ-1001",
-    "status": "Pending",
-    "current_stage": "Manager Approval",
-    "diagnosis": "Request is pending at stage 'Manager Approval'. Awaiting approval from: manager_raj, security_team."
-  }
-}
-```
-
----
-
-### 4. `prepare_provisioning_retry`
-
-Prepares a retry draft for a failed provisioning request.
+Prepares a retry draft for a failed request.
 
 This tool does not execute the retry.
 
-Input:
+#### `submit_provisioning_retry_after_confirmation`
 
-```json
-{
-  "request_id": "REQ-1003"
-}
-```
+Submits the retry only after approval.
 
-Example response:
+Required permission:
 
-```json
-{
-  "success": true,
-  "data": {
-    "retry_id": "RETRY-REQ-1003-3a154cdd",
-    "request_id": "REQ-1003",
-    "action": "Retry provisioning",
-    "risk_level": "Medium",
-    "requires_confirmation": true,
-    "status": "Prepared",
-    "summary": "Provisioning retry prepared for access request REQ-1003. The request failed during 'Provisioning'. User confirmation is required before execution.",
-    "approved_by": null,
-    "submitted_at": null
-  }
-}
+```text
+provisioning:retry
 ```
 
 ---
 
-### 5. `submit_provisioning_retry_after_confirmation`
+### Ticket Creation Tools
 
-Submits a prepared retry after explicit human approval.
+#### `prepare_ticket_creation`
 
-Input:
+Prepares a ticket creation draft.
 
-```json
-{
-  "retry_id": "RETRY-REQ-1003-3a154cdd",
-  "approved_by": "varun.kumar"
-}
-```
+#### `submit_ticket_creation_after_confirmation`
 
-Example response:
+Creates the ticket after approval.
 
-```json
-{
-  "success": true,
-  "data": {
-    "retry_id": "RETRY-REQ-1003-3a154cdd",
-    "request_id": "REQ-1003",
-    "action": "Retry provisioning",
-    "risk_level": "Medium",
-    "status": "Submitted",
-    "requires_confirmation": false,
-    "approved_by": "varun.kumar",
-    "message": "Provisioning retry for request REQ-1003 has been submitted after approval by varun.kumar."
-  }
-}
+Required permission:
+
+```text
+ticket:create
 ```
 
 ---
 
-## MCP Resources
+### Ticket Closure Tools
 
-Resources provide read-only context to the AI assistant.
+#### `prepare_ticket_closure`
+
+Prepares a ticket closure draft.
+
+#### `submit_ticket_closure_after_confirmation`
+
+Closes the ticket after approval.
+
+Required permission:
+
+```text
+ticket:close
+```
+
+---
+
+### Notification Tools
+
+#### `prepare_notification`
+
+Prepares a notification draft.
+
+#### `send_notification_after_confirmation`
+
+Sends the notification after approval.
+
+Required permission:
+
+```text
+notification:send
+```
+
+---
+
+## MCP Resources Implemented
+
+The project exposes read-only resources that provide policy, runbook, and schema context.
 
 ### `policy://access/approval-rules`
 
-Contains access approval rules, such as manager approval, security approval for high-risk roles, and escalation guidance.
+Contains access approval rules.
 
 ### `runbook://identity/provisioning-failure`
 
-Contains troubleshooting steps for failed provisioning, such as checking target-system accounts, role mappings, connector errors, and retry safety.
+Contains troubleshooting guidance for failed provisioning.
 
 ### `schema://access-request/status-codes`
 
-Explains status values such as:
+Explains access request statuses such as:
 
 ```text
 Pending
@@ -634,64 +717,130 @@ Rejected
 
 ---
 
-## MCP Prompts
+## MCP Prompts Implemented
 
-Prompts provide reusable workflow templates that guide the AI assistant.
+The project exposes prompts that guide standard workflows.
 
 ### `troubleshoot_access_request`
 
-Guides the assistant through a standard access request troubleshooting workflow.
+Guides the AI assistant through access request troubleshooting.
 
 ### `generate_requester_response`
 
-Helps draft a requester-facing explanation.
+Helps generate a requester-facing response.
 
 ### `prepare_support_summary`
 
-Helps create an operations summary for support engineers.
+Helps generate a support or operations summary.
 
 ---
 
-## Human-in-the-Loop Write Workflow
+## Human-in-the-Loop Write Action Design
 
-This project uses a two-step pattern for sensitive write actions.
-
-### Step 1: Prepare Action
+Every sensitive action follows this pattern:
 
 ```text
-prepare_provisioning_retry
+prepare_action
+  ↓
+review draft
+  ↓
+submit_action_after_confirmation
 ```
 
-The server validates the request and creates a draft.
-
-The action is not executed yet.
-
-### Step 2: Submit After Confirmation
+Example:
 
 ```text
-submit_provisioning_retry_after_confirmation
+prepare_ticket_creation
+  ↓
+submit_ticket_creation_after_confirmation
 ```
 
-The server submits the action only after a human/operator provides approval.
+Why this is important:
 
-### Why This Matters
+- Prevents autonomous AI execution
+- Allows human review before action
+- Enables audit trails
+- Supports compliance
+- Makes duplicate prevention possible
+- Makes authorization checks explicit
 
-This pattern prevents accidental or autonomous execution of sensitive operations by an AI assistant.
+---
 
-It also enables:
+## Role-Based Authorization
+
+The project includes mock RBAC using:
 
 ```text
-approval tracking
-audit logging
-duplicate execution prevention
-clear operational accountability
+data/mock_auth_data.py
+services/authorization_service.py
+```
+
+### Roles
+
+Example roles:
+
+```text
+identity_operator
+support_engineer
+access_manager
+admin
+```
+
+### Permissions
+
+Current permissions:
+
+```text
+provisioning:retry
+ticket:create
+ticket:close
+notification:send
+access:approve
+access:revoke
+```
+
+### Protected Actions
+
+| Action | Required Permission |
+|---|---|
+| Submit provisioning retry | `provisioning:retry` |
+| Submit ticket creation | `ticket:create` |
+| Submit ticket closure | `ticket:close` |
+| Send notification | `notification:send` |
+
+### Example Authorization Failure
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "AUTHORIZATION_FAILED",
+    "message": "User 'readonly.user' is not authorized to perform this action. Required permission: 'ticket:create'.",
+    "retryable": false,
+    "suggested_action": "Use an authorized operator or request the required access."
+  }
+}
 ```
 
 ---
 
 ## Structured Error Handling
 
-The project uses `ErrorResponse` and `ErrorUtils` to return predictable error objects.
+The project uses a standard error response model.
+
+Error format:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable error message",
+    "retryable": false,
+    "suggested_action": "Recommended next step"
+  }
+}
+```
 
 Common error codes:
 
@@ -701,99 +850,117 @@ APPROVERS_NOT_FOUND
 RETRY_NOT_ALLOWED
 RETRY_DRAFT_NOT_FOUND
 RETRY_ALREADY_PROCESSED
-APPROVAL_REQUIRED
+TICKET_DRAFT_NOT_FOUND
+TICKET_ALREADY_PROCESSED
+TICKET_NOT_FOUND
+TICKET_ALREADY_CLOSED
+TICKET_CLOSURE_DRAFT_NOT_FOUND
+TICKET_CLOSURE_ALREADY_PROCESSED
+NOTIFICATION_DRAFT_NOT_FOUND
+NOTIFICATION_ALREADY_PROCESSED
+AUTHORIZATION_FAILED
 INTERNAL_ERROR
-```
-
-Example:
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "RETRY_ALREADY_PROCESSED",
-    "message": "Retry draft 'RETRY-REQ-1003-3a154cdd' has already been processed.",
-    "retryable": false,
-    "suggested_action": "Prepare a new provisioning retry draft if another retry is required."
-  }
-}
 ```
 
 ---
 
 ## Audit Logging
 
-The project emits audit logs for tool execution.
+Every important tool execution emits an audit event.
 
-Example audit event:
+Example:
 
 ```json
 {
-  "timestamp": "2026-05-24T16:01:42.890918+00:00",
+  "timestamp": "2026-05-24T16:17:03.020642+00:00",
   "event_type": "MCP_TOOL_CALL",
-  "tool_name": "submit_provisioning_retry_after_confirmation",
+  "tool_name": "submit_ticket_creation_after_confirmation",
   "request_id": "REQ-1003",
   "status": "success",
-  "correlation_id": "e704c346-85cb-4698-9399-782cb648dc66"
+  "correlation_id": "7a016669-ec92-41e1-a2ed-6382fbf968a1"
 }
 ```
 
-Currently, audit logs are printed to the console. In a production system, the same audit events can be written to:
+Current behavior:
 
 ```text
-PostgreSQL audit table
-Splunk
-ELK / OpenSearch
-Azure Application Insights
-SAP BTP logging
-Cloud-native observability stack
+Audit events are printed to the console.
+```
+
+Future production behavior:
+
+```text
+Write audit events to a database, log platform, SIEM, or observability tool.
 ```
 
 ---
 
-## Mock Data and Enterprise Replacement Strategy
+## Mock Data Strategy
 
-The current project uses mock data for learning and demonstration.
+The project currently uses mock data for learning and demonstration.
 
-Current mock data represents enterprise systems:
+Mock data represents:
 
-| Mock Data | Represents |
+```text
+Access requests
+Approvers
+Retry drafts
+Ticket drafts
+Created tickets
+Ticket closure drafts
+Notification drafts
+Sent notifications
+Authorization roles and permissions
+Resources such as policies and runbooks
+```
+
+This makes the project easy to run locally without depending on external systems.
+
+---
+
+## How Mock Data Can Be Replaced in Enterprise
+
+The correct enterprise replacement strategy is not to call APIs directly from tools.
+
+Bad design:
+
+```text
+Tool → external API
+```
+
+Good design:
+
+```text
+Tool → Service → Repository → Client → external API/database
+```
+
+Recommended real replacements:
+
+| Current Mock Component | Enterprise Replacement |
 |---|---|
-| `MOCK_ACCESS_REQUESTS` | Access request system |
-| `MOCK_APPROVERS` | Approval workflow system |
-| `MOCK_RETRY_DRAFTS` | Retry draft/action workflow state |
-| `resource_data.py` | Policy and runbook repository |
-| Console audit logs | Enterprise audit logging |
+| `MOCK_ACCESS_REQUESTS` | Access request API or database |
+| `MOCK_APPROVERS` | Workflow or approval engine |
+| `MOCK_RETRY_DRAFTS` | Database table for retry drafts |
+| `MOCK_TICKET_DRAFTS` | Database table for ticket drafts |
+| `MOCK_CREATED_TICKETS` | Ticketing system or ticket database |
+| `MOCK_NOTIFICATION_DRAFTS` | Notification draft table |
+| `MOCK_SENT_NOTIFICATIONS` | Email, Teams, Slack, or enterprise notification API |
+| `mock_auth_data.py` | Identity provider, JWT claims, IAM/IGA system, or RBAC database |
+| `resource_data.py` | Knowledge base, SharePoint, Confluence, Git, or document repository |
 
-In a real enterprise implementation, these should be replaced through repository and client implementations.
-
-Recommended replacement strategy:
-
-```text
-MockRequestRepository
-        ↓
-ApiRequestRepository or DbRequestRepository
-```
+Recommended future architecture:
 
 ```text
-MOCK_RETRY_DRAFTS
-        ↓
-Database-backed RetryRepository
+MCP Tool
+  ↓
+Service Layer
+  ↓
+Repository Interface
+  ↓
+Real Repository Implementation
+  ↓
+Enterprise API / Database / Workflow System
 ```
-
-```text
-resource_data.py
-        ↓
-Document repository, knowledge base, Git repository, or database table
-```
-
-```text
-Console audit logs
-        ↓
-Centralized audit/event logging system
-```
-
-The tools and services should not be rewritten when replacing mock data. Only repository implementations and backend clients should change.
 
 ---
 
@@ -801,13 +968,10 @@ The tools and services should not be rewritten when replacing mock data. Only re
 
 ### Prerequisites
 
-Recommended:
-
 ```text
 Python 3.10 or higher
 pip
-virtual environment
-terminal access
+virtual environment recommended
 ```
 
 ### Create Virtual Environment
@@ -816,15 +980,13 @@ terminal access
 python -m venv .venv
 ```
 
-Activate it:
-
-Linux/macOS:
+Activate environment:
 
 ```bash
 source .venv/bin/activate
 ```
 
-Windows:
+For Windows:
 
 ```bash
 .venv\Scripts\activate
@@ -836,7 +998,7 @@ Windows:
 pip install -r requirements.txt
 ```
 
-If `requirements.txt` is not yet complete, install MCP manually:
+If the MCP package is not already listed in requirements:
 
 ```bash
 pip install mcp
@@ -844,23 +1006,35 @@ pip install mcp
 
 ---
 
-## Running the Project
+## Running Local Tool Tests
 
-### Run Local Tool Registry Test
+Run:
 
 ```bash
 python -m app.main
 ```
 
-This validates the internal tool registry and business logic without needing an MCP client.
+This runs the local test runner and validates:
 
-### Run MCP Server
+- Tool discovery
+- Read tools
+- Retry workflow
+- Ticket creation workflow
+- Notification workflow
+- Ticket closure workflow
+- RBAC authorization checks
+- Structured errors
+- Audit logging
+
+---
+
+## Running the MCP Server
+
+Run:
 
 ```bash
 python -m app.mcp_server
 ```
-
-The server runs using Streamable HTTP transport.
 
 Default endpoint:
 
@@ -868,7 +1042,11 @@ Default endpoint:
 http://127.0.0.1:8000/mcp
 ```
 
-### Run MCP Client Test
+The MCP server exposes tools, resources, and prompts.
+
+---
+
+## Running the MCP Client Test
 
 Open another terminal and run:
 
@@ -876,143 +1054,47 @@ Open another terminal and run:
 python -m app.mcp_client_test
 ```
 
-The client test validates actual MCP-style client-server behavior.
+This validates real MCP client-server behavior.
 
 ---
 
-## Testing the MCP-Style Tool Registry
+## Important Test Scenarios
 
-`app/main.py` tests:
-
-```text
-TEST 1  Valid access request
-TEST 2  Invalid access request
-TEST 3  Unknown tool
-TEST 4  Pending approvers
-TEST 5  Diagnose request
-TEST 6  Prepare retry for failed request
-TEST 7  Submit retry after confirmation
-TEST 7A Submit same retry again
-TEST 8  Retry not allowed for non-failed request
-TEST 9  Submit non-existing retry draft
-```
-
-Expected important results:
+The local test runner validates scenarios such as:
 
 ```text
-TEST 6  → success true, retry status Prepared
-TEST 7  → success true, retry status Submitted
-TEST 7A → RETRY_ALREADY_PROCESSED
-TEST 8  → RETRY_NOT_ALLOWED
-TEST 9  → RETRY_DRAFT_NOT_FOUND
-```
-
----
-
-## Running the Real MCP Server
-
-The MCP server wrapper is located at:
-
-```text
-app/mcp_server.py
-```
-
-It exposes project tools, resources, and prompts through MCP.
-
-Typical flow:
-
-```text
-MCP client connects
-        ↓
-Client discovers tools/resources/prompts
-        ↓
-Client invokes a tool or reads a resource
-        ↓
-MCP server routes to internal logic
-        ↓
-Structured response is returned
+Valid request lookup
+Invalid request lookup
+Unknown tool handling
+Pending approver lookup
+Access request diagnosis
+Prepare retry
+Submit retry
+Duplicate retry submission
+Unauthorized retry submission
+Prepare ticket creation
+Submit ticket creation
+Duplicate ticket creation
+Unauthorized ticket creation
+Prepare notification
+Send notification
+Duplicate notification send
+Unauthorized notification send
+Prepare ticket closure
+Submit ticket closure
+Duplicate ticket closure
+Unauthorized ticket closure
 ```
 
 ---
 
-## Running the MCP Client Test
+## Development Journey
 
-The MCP client test is located at:
+This project was developed step by step.
 
-```text
-app/mcp_client_test.py
-```
+### Phase 1: MCP Basics
 
-It validates:
-
-```text
-tool discovery
-tool invocation
-resource discovery
-resource reading
-prompt discovery
-prompt retrieval
-structured error handling
-human-approved retry workflow
-```
-
----
-
-## Example Outputs
-
-### Successful Request Status
-
-```json
-{
-  "success": true,
-  "data": {
-    "request_id": "REQ-1001",
-    "requester": "varun.kumar",
-    "target_system": "SAP_FINANCE",
-    "role": "FIN_DISPLAY",
-    "status": "Pending",
-    "current_stage": "Manager Approval"
-  }
-}
-```
-
-### Failed Request Lookup
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "ACCESS_REQUEST_NOT_FOUND",
-    "message": "Access request 'REQ-9999' was not found.",
-    "retryable": false,
-    "suggested_action": "Verify the request ID and try again."
-  }
-}
-```
-
-### Duplicate Retry Submission
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "RETRY_ALREADY_PROCESSED",
-    "message": "Retry draft 'RETRY-REQ-1003-3a154cdd' has already been processed.",
-    "retryable": false,
-    "suggested_action": "Prepare a new provisioning retry draft if another retry is required."
-  }
-}
-```
-
----
-
-## How This Project Was Developed
-
-This project was built step by step to make MCP understandable for beginners.
-
-### Step 1: Understand MCP Basics
-
-The first step was understanding:
+The project started by understanding:
 
 ```text
 MCP Host
@@ -1023,7 +1105,7 @@ Resources
 Prompts
 ```
 
-### Step 2: Build a Simple Tool
+### Phase 2: First Read Tool
 
 The first tool was:
 
@@ -1031,9 +1113,7 @@ The first tool was:
 get_access_request_status
 ```
 
-It retrieved request details from mock data.
-
-### Step 3: Add Clean Architecture
+### Phase 3: Clean Architecture
 
 The project was split into:
 
@@ -1046,109 +1126,102 @@ data
 utils
 ```
 
-### Step 4: Add Repository Pattern
+### Phase 4: Tool Registry
 
-A repository interface was introduced so mock data can later be replaced with real enterprise systems.
+A tool registry was added to simulate MCP-style discovery and invocation.
 
-### Step 5: Add More Tools
+### Phase 5: Real MCP Server
 
-Additional tools were added:
+An MCP server wrapper was added.
 
-```text
-get_pending_approvers
-diagnose_access_request
-```
+### Phase 6: Resources and Prompts
 
-### Step 6: Add Tool Registry
+Resources and prompts were added for policy, runbook, and workflow guidance.
 
-The tool registry enabled:
+### Phase 7: Safe Write Workflows
 
-```text
-tool discovery
-tool execution
-centralized registration
-```
-
-### Step 7: Add MCP Server Wrapper
-
-A real MCP server wrapper was added to expose the internal capabilities through MCP.
-
-### Step 8: Add Resources and Prompts
-
-Resources and prompts were added to provide:
+Human-approved workflows were added:
 
 ```text
-policy context
-runbook context
-standard troubleshooting workflows
+provisioning retry
+ticket creation
+notification sending
+ticket closure
 ```
 
-### Step 9: Add Structured Errors and Audit Logging
+### Phase 8: Authorization
 
-The project added:
-
-```text
-ErrorResponse
-ErrorUtils
-AuditLogger
-correlation IDs
-```
-
-### Step 10: Add Human-Approved Write Workflow
-
-The provisioning retry workflow was added using:
-
-```text
-prepare_provisioning_retry
-submit_provisioning_retry_after_confirmation
-```
-
-This introduced safe enterprise-style write actions.
+RBAC authorization was added for sensitive submit actions.
 
 ---
 
-## How to Extend This Project
+## How to Add a New Tool
 
-Future tools can follow the same pattern.
+To add a new write tool, follow this pattern.
 
-### Example: Create Ticket
+### Step 1: Add Model
 
-Recommended files:
-
-```text
-models/ticket_model.py
-services/ticket_service.py
-tools/ticket_tool.py
-repositories/ticket_repository.py
-repositories/mock_ticket_repository.py
-```
-
-Recommended tools:
+Example:
 
 ```text
-prepare_ticket_creation
-submit_ticket_creation_after_confirmation
+models/access_revocation_model.py
 ```
 
-### Example: Send Notification
+### Step 2: Add Mock Store
 
-Recommended tools:
+Example:
 
 ```text
-prepare_notification
-send_notification_after_confirmation
+MOCK_ACCESS_REVOCATION_DRAFTS = {}
 ```
 
-### Example: Revoke Access
+### Step 3: Add Service
 
-Recommended tools:
+Example:
 
 ```text
-prepare_access_revocation
-submit_access_revocation_after_confirmation
+services/access_revocation_service.py
 ```
 
-High-risk tools such as access revocation, approval, rejection, and ticket closure should always use human confirmation.
+### Step 4: Add Tool
+
+Example:
+
+```text
+tools/access_revocation_tool.py
+```
+
+### Step 5: Add Error Methods
+
+Add structured errors in:
+
+```text
+utils/error_utils.py
+```
+
+### Step 6: Register Tool
+
+Update:
+
+```text
+tools/tool_registry.py
+```
+
+### Step 7: Add Tests
+
+Update:
+
+```text
+app/main.py
+```
+
+### Step 8: Add Authorization
+
+Add permission check using:
+
+```text
+AuthorizationService.require_permission(...)
+```
 
 ---
 
@@ -1157,44 +1230,67 @@ High-risk tools such as access revocation, approval, rejection, and ticket closu
 Planned enhancements:
 
 ```text
-Authentication and authorization
-Role-based access control
-Persistent retry draft storage
-Database-backed audit logs
-Real enterprise API connectors
-Input validation using schemas
-Rate limiting
-Timeout handling
-Retry policies for backend failures
-Centralized observability
-Deployment to cloud platform
+Persistent database storage
+Database-backed audit logging
+Real enterprise API integrations
+Authentication for MCP clients
+JWT/OAuth-based user context
+Fine-grained RBAC
+Input validation with schema models
+Unit tests and integration tests
+Dockerfile
 CI/CD pipeline
-Automated tests
-Docker support
-Configuration-based backend selection
+Deployment to SAP BTP or cloud platform
+Observability metrics
+Rate limiting
+Timeout and retry handling
+Secrets management
+Environment-based configuration
 ```
 
-Recommended future backend strategy:
+Recommended production backend pattern:
 
 ```text
-Use APIs for enterprise source-of-truth systems
-Use PostgreSQL for MCP-owned workflow state and audit data
-Use repository implementations to switch from mock to real backend
+Use APIs for enterprise source-of-truth systems.
+Use a database for MCP-owned workflow state.
+Use centralized logging for audit and observability.
+Use repository implementations to switch between mock and real backend.
 ```
+
+---
+
+Strong interview points:
+
+```text
+MCP tool/resource/prompt implementation
+Human-in-the-loop write actions
+RBAC for sensitive operations
+Repository abstraction
+Structured error design
+Audit logging with correlation IDs
+Mock-to-enterprise backend replacement strategy
+Production-readiness roadmap
+```
+
+---
 
 ## Current Status
 
 ```text
-MCP tools: complete
-MCP resources: complete
-MCP prompts: complete
-Tool registry: complete
-Real MCP server wrapper: complete
-Real MCP client-server test: complete
-Repository abstraction: complete
-Structured error model: complete
-Audit logging: complete
-Human-in-the-loop retry workflow: complete
+MCP tools: implemented
+MCP resources: implemented
+MCP prompts: implemented
+Tool registry: implemented
+Real MCP server wrapper: implemented
+MCP client test: implemented
+Repository abstraction: implemented
+Structured errors: implemented
+Audit logging: implemented
+Provisioning retry workflow: implemented
+Ticket creation workflow: implemented
+Notification workflow: implemented
+Ticket closure workflow: implemented
+RBAC authorization: implemented for existing write submit actions
 Production hardening: in progress
 ```
 
@@ -1202,19 +1298,26 @@ Production hardening: in progress
 
 ## Summary
 
-AccessOps MCP Server is more than a basic MCP demo. It is a production-oriented learning project that shows how an AI assistant can safely interact with enterprise access-management workflows.
+AccessOps MCP Server is a practical, production-oriented MCP learning project.
 
-The project demonstrates:
+It demonstrates how an AI assistant can safely interact with enterprise systems using:
 
 ```text
-MCP fundamentals
+MCP tools
+MCP resources
+MCP prompts
 Clean architecture
-Tool/resource/prompt design
-Repository abstraction
+Human approvals
+RBAC authorization
 Structured errors
-Audit logging
-Human-approved write actions
-Enterprise extensibility
+Audit logs
+Mock-to-real backend extensibility
 ```
 
-This makes the project useful for MCP learning, resume building, interview discussions, and future enterprise integration.
+The project is suitable for:
+
+```text
+Learning MCP
+Understanding AI-to-enterprise-system integration
+Future enterprise deployment
+```

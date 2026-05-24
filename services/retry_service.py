@@ -4,6 +4,7 @@ from uuid import uuid4
 from data.mock_data import MOCK_RETRY_DRAFTS
 from models.retry_model import ProvisioningRetryDraft
 from services.request_service import RequestService
+from services.authorization_service import AuthorizationService
 
 
 class RetryService:
@@ -85,6 +86,11 @@ class RetryService:
 
         if not approved_by or not approved_by.strip():
             raise ValueError("Approval is required before submitting provisioning retry")
+
+        AuthorizationService.require_permission(
+            user_id=approved_by,
+            permission="provisioning:retry",
+        )
 
         if retry_draft.status != "Prepared":
             raise ValueError(f"Retry draft '{retry_id}' has already been processed")

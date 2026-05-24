@@ -96,6 +96,26 @@ def run_test():
     )
     print(result9)
 
+    print_section("TEST 9A: SUBMIT RETRY WITH UNAUTHORIZED USER")
+
+    unauthorized_retry_prepare = registry.execute_tool(
+        "prepare_provisioning_retry",
+        request_id="REQ-1003",
+    )
+    print(unauthorized_retry_prepare)
+
+    if unauthorized_retry_prepare.get("success"):
+        unauthorized_retry_id = unauthorized_retry_prepare["data"]["retry_id"]
+
+        unauthorized_retry_submit = registry.execute_tool(
+            "submit_provisioning_retry_after_confirmation",
+            retry_id=unauthorized_retry_id,
+            approved_by="readonly.user",
+        )
+        print(unauthorized_retry_submit)
+    else:
+        print("Skipping unauthorized retry test because retry preparation failed.")
+
     print_section("TEST 10: PREPARE TICKET CREATION")
     result10 = registry.execute_tool(
         "prepare_ticket_creation",
@@ -172,6 +192,25 @@ def run_test():
     else:
         print("Skipping approval-required test because ticket draft creation failed.")
 
+    print_section("TEST 14A: SUBMIT TICKET WITH UNAUTHORIZED USER")
+
+    unauthorized_ticket_prepare = registry.execute_tool(
+        "prepare_ticket_creation",
+        request_id="REQ-1003",
+        title="Unauthorized ticket creation test",
+        priority="High",
+    )
+    print(unauthorized_ticket_prepare)
+
+    if unauthorized_ticket_prepare.get("success"):
+        unauthorized_ticket_submit = registry.execute_tool(
+            "submit_ticket_creation_after_confirmation",
+            ticket_draft_id=unauthorized_ticket_prepare["data"]["ticket_draft_id"],
+            approved_by="readonly.user",
+        )
+        print(unauthorized_ticket_submit)
+    else:
+        print("Skipping unauthorized ticket test because ticket draft preparation failed.")
 
     print_section("TEST 15: PREPARE NOTIFICATION")
     result15 = registry.execute_tool(
@@ -245,6 +284,28 @@ def run_test():
         print(result19)
     else:
         print("Skipping notification approval-required test because draft preparation failed.")
+
+    print_section("TEST 19A: SEND NOTIFICATION WITH UNAUTHORIZED USER")
+
+    unauthorized_notification_prepare = registry.execute_tool(
+        "prepare_notification",
+        request_id="REQ-1003",
+        recipient="identity_ops_team",
+        channel="teams",
+        subject="Unauthorized notification test",
+        message="Testing notification authorization failure.",
+    )
+    print(unauthorized_notification_prepare)
+
+    if unauthorized_notification_prepare.get("success"):
+        unauthorized_notification_submit = registry.execute_tool(
+            "send_notification_after_confirmation",
+            notification_draft_id=unauthorized_notification_prepare["data"]["notification_draft_id"],
+            approved_by="readonly.user",
+        )
+        print(unauthorized_notification_submit)
+    else:
+        print("Skipping unauthorized notification test because draft preparation failed.")
 
     print_section("TEST 20: PREPARE TICKET CLOSURE")
     closure_draft_id = None

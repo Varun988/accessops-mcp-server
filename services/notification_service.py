@@ -4,7 +4,7 @@ from uuid import uuid4
 from data.mock_data import MOCK_NOTIFICATION_DRAFTS, MOCK_SENT_NOTIFICATIONS
 from models.notification_model import NotificationDraft
 from services.request_service import RequestService
-
+from services.authorization_service import AuthorizationService
 
 class NotificationService:
     """Service layer for preparing and sending notification actions."""
@@ -107,6 +107,11 @@ class NotificationService:
 
         if not approved_by or not approved_by.strip():
             raise ValueError("Approval is required before sending notification")
+
+        AuthorizationService.require_permission(
+            user_id=approved_by,
+            permission="notification:send",
+        )
 
         if notification_draft.status != "Prepared":
             raise ValueError(
