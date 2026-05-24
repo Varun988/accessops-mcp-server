@@ -96,6 +96,77 @@ def run_test():
     )
     print(result9)
 
+    print_section("TEST 10: PREPARE TICKET CREATION")
+    result10 = registry.execute_tool(
+        "prepare_ticket_creation",
+        request_id="REQ-1003",
+        title="Access provisioning failure for REQ-1003",
+        priority="High",
+    )
+    print(result10)
+
+    ticket_draft_id = None
+    if result10.get("success"):
+        ticket_draft_id = result10["data"]["ticket_draft_id"]
+
+    print_section("TEST 11: SUBMIT TICKET AFTER CONFIRMATION")
+    if ticket_draft_id:
+        result11 = registry.execute_tool(
+            "submit_ticket_creation_after_confirmation",
+            ticket_draft_id=ticket_draft_id,
+            approved_by="varun.kumar",
+        )
+        print(result11)
+    else:
+        print("Skipping ticket submission because ticket draft creation failed.")
+
+    print_section("TEST 11A: SUBMIT SAME TICKET DRAFT AGAIN")
+    if ticket_draft_id:
+        result11a = registry.execute_tool(
+            "submit_ticket_creation_after_confirmation",
+            ticket_draft_id=ticket_draft_id,
+            approved_by="varun.kumar",
+        )
+        print(result11a)
+    else:
+        print("Skipping duplicate ticket submission because ticket draft creation failed.")
+
+    print_section("TEST 12: PREPARE TICKET FOR INVALID REQUEST")
+    result12 = registry.execute_tool(
+        "prepare_ticket_creation",
+        request_id="REQ-9999",
+        title="Invalid request ticket",
+        priority="Medium",
+    )
+    print(result12)
+
+    print_section("TEST 13: SUBMIT NON-EXISTING TICKET DRAFT")
+    result13 = registry.execute_tool(
+        "submit_ticket_creation_after_confirmation",
+        ticket_draft_id="TICKET-DRAFT-9999",
+        approved_by="varun.kumar",
+    )
+    print(result13)
+
+    print_section("TEST 14: SUBMIT TICKET WITHOUT APPROVAL")
+    result14_prepare = registry.execute_tool(
+        "prepare_ticket_creation",
+        request_id="REQ-1002",
+    )
+    print(result14_prepare)
+
+    if result14_prepare.get("success"):
+        approval_test_draft_id = result14_prepare["data"]["ticket_draft_id"]
+
+        result14 = registry.execute_tool(
+            "submit_ticket_creation_after_confirmation",
+            ticket_draft_id=approval_test_draft_id,
+            approved_by="",
+        )
+        print(result14)
+    else:
+        print("Skipping approval-required test because ticket draft creation failed.")
+
 
 if __name__ == "__main__":
     run_test()

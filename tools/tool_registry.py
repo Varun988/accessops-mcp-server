@@ -14,6 +14,13 @@ from tools.retry_tool import (
     SUBMIT_PROVISIONING_RETRY_METADATA,
 )
 
+from tools.ticket_tool import (
+    prepare_ticket_creation,
+    PREPARE_TICKET_CREATION_METADATA,
+    submit_ticket_creation_after_confirmation,
+    SUBMIT_TICKET_CREATION_METADATA,
+)
+
 
 class ToolRegistry:
     """Registry to manage all MCP tools."""
@@ -49,6 +56,18 @@ class ToolRegistry:
             SUBMIT_PROVISIONING_RETRY_METADATA["name"],
             submit_provisioning_retry_after_confirmation,
             SUBMIT_PROVISIONING_RETRY_METADATA,
+        )
+
+        self.register_tool(
+            PREPARE_TICKET_CREATION_METADATA["name"],
+            prepare_ticket_creation,
+            PREPARE_TICKET_CREATION_METADATA,
+        )
+
+        self.register_tool(
+            SUBMIT_TICKET_CREATION_METADATA["name"],
+            submit_ticket_creation_after_confirmation,
+            SUBMIT_TICKET_CREATION_METADATA,
         )
 
     def register_tool(self, name: str, function, metadata: dict) -> None:

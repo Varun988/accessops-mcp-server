@@ -87,3 +87,38 @@ class ErrorUtils:
             ).to_dict(),
         }
 
+    @staticmethod
+    def ticket_draft_not_found(ticket_draft_id: str) -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="TICKET_DRAFT_NOT_FOUND",
+                message=f"Ticket draft '{ticket_draft_id}' was not found.",
+                retryable=False,
+                suggested_action="Prepare a ticket creation draft first, then submit it after confirmation.",
+            ).to_dict(),
+        }
+
+    @staticmethod
+    def ticket_already_processed(ticket_draft_id: str) -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="TICKET_ALREADY_PROCESSED",
+                message=f"Ticket draft '{ticket_draft_id}' has already been processed.",
+                retryable=False,
+                suggested_action="Prepare a new ticket creation draft if another ticket is required.",
+            ).to_dict(),
+        }
+
+    @staticmethod
+    def ticket_approval_required() -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="TICKET_APPROVAL_REQUIRED",
+                message="Human approval is required before creating the ticket.",
+                retryable=False,
+                suggested_action="Provide the approving user or operator before submitting ticket creation.",
+            ).to_dict(),
+        }

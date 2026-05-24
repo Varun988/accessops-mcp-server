@@ -48,3 +48,9 @@ MOCK_RETRY_DRAFTS = {}
 
 # Simulated retry draft counter
 RETRY_DRAFT_COUNTER = 1
+
+# Simulated ticket draft store
+MOCK_TICKET_DRAFTS = {}
+
+# Simulated created tickets store
+MOCK_CREATED_TICKETS = {}
