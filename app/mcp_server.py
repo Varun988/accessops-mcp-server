@@ -11,6 +11,18 @@ from tools.retry_tool import (
     submit_provisioning_retry_after_confirmation as submit_retry_tool,
 )
 
+from tools.ticket_tool import (
+    prepare_ticket_creation as prepare_ticket_creation_tool,
+    submit_ticket_creation_after_confirmation as submit_ticket_creation_tool,
+    prepare_ticket_closure as prepare_ticket_closure_tool,
+    submit_ticket_closure_after_confirmation as submit_ticket_closure_tool,
+)
+
+from tools.notification_tool import (
+    prepare_notification as prepare_notification_tool,
+    send_notification_after_confirmation as send_notification_tool,
+)
+
 from services.resource_service import ResourceService
 from services.prompt_service import PromptService
 
@@ -137,6 +149,120 @@ def submit_provisioning_retry_after_confirmation(
     """
     return submit_retry_tool(
         retry_id=retry_id,
+        approved_by=approved_by,
+    )
+
+@mcp.tool()
+def prepare_ticket_creation(
+    request_id: str,
+    title: str | None = None,
+    priority: str | None = None,
+) -> dict:
+    """
+    Prepare a ticket creation draft for an access request.
+
+    Use this tool when the user wants to create a support or incident ticket
+    for an access request. This tool does not create the ticket immediately.
+    It creates a draft and requires human confirmation before submission.
+    """
+    return prepare_ticket_creation_tool(
+        request_id=request_id,
+        title=title,
+        priority=priority,
+    )
+
+
+@mcp.tool()
+def submit_ticket_creation_after_confirmation(
+    ticket_draft_id: str,
+    approved_by: str,
+) -> dict:
+    """
+    Create a ticket from a prepared ticket draft after explicit human confirmation.
+
+    Use this tool only after a ticket draft has been prepared and the
+    user/operator has explicitly approved ticket creation.
+    """
+    return submit_ticket_creation_tool(
+        ticket_draft_id=ticket_draft_id,
+        approved_by=approved_by,
+    )
+
+
+@mcp.tool()
+def prepare_notification(
+    request_id: str,
+    recipient: str | None = None,
+    channel: str | None = None,
+    subject: str | None = None,
+    message: str | None = None,
+) -> dict:
+    """
+    Prepare a notification draft for an access request.
+
+    Use this tool when the user wants to notify a requester, approver,
+    or operations team. This tool does not send the notification immediately.
+    It creates a draft and requires human confirmation before sending.
+    """
+    return prepare_notification_tool(
+        request_id=request_id,
+        recipient=recipient,
+        channel=channel,
+        subject=subject,
+        message=message,
+    )
+
+
+@mcp.tool()
+def send_notification_after_confirmation(
+    notification_draft_id: str,
+    approved_by: str,
+) -> dict:
+    """
+    Send a prepared notification after explicit human confirmation.
+
+    Use this tool only after a notification draft has been prepared and
+    the user/operator has explicitly approved sending the notification.
+    """
+    return send_notification_tool(
+        notification_draft_id=notification_draft_id,
+        approved_by=approved_by,
+    )
+
+
+@mcp.tool()
+def prepare_ticket_closure(
+    ticket_id: str,
+    closure_reason: str | None = None,
+    resolution_summary: str | None = None,
+) -> dict:
+    """
+    Prepare a ticket closure draft.
+
+    Use this tool when the user wants to close an existing ticket.
+    This tool does not close the ticket immediately. It creates a closure
+    draft and requires human confirmation before closure.
+    """
+    return prepare_ticket_closure_tool(
+        ticket_id=ticket_id,
+        closure_reason=closure_reason,
+        resolution_summary=resolution_summary,
+    )
+
+
+@mcp.tool()
+def submit_ticket_closure_after_confirmation(
+    closure_draft_id: str,
+    approved_by: str,
+) -> dict:
+    """
+    Close a ticket from a prepared closure draft after explicit human confirmation.
+
+    Use this tool only after a closure draft has been prepared and the
+    user/operator has explicitly approved ticket closure.
+    """
+    return submit_ticket_closure_tool(
+        closure_draft_id=closure_draft_id,
         approved_by=approved_by,
     )
 

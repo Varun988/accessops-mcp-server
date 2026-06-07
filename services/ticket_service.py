@@ -249,10 +249,17 @@ class TicketService:
         if not approved_by or not approved_by.strip():
             raise ValueError("Approval is required before closing ticket")
 
+                
+        AuthorizationService.require_permission(
+            user_id=approved_by,
+            permission="ticket:close",
+        )
+
         if closure_draft.status != "Prepared":
             raise ValueError(
                 f"Ticket closure draft '{closure_draft_id}' has already been processed"
             )
+
 
         ticket = MOCK_CREATED_TICKETS.get(closure_draft.ticket_id)
 

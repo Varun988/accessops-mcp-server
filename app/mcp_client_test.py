@@ -148,6 +148,152 @@ async def main():
             )
             print(invalid_submit_retry)
 
+            print("\n=== CALL TOOL: prepare_ticket_creation ===")
+            prepare_ticket_result = await session.call_tool(
+                "prepare_ticket_creation",
+                {
+                    "request_id": "REQ-1003",
+                    "title": "MCP ticket creation test for REQ-1003",
+                    "priority": "High",
+                }
+            )
+            print(prepare_ticket_result)
+
+            prepare_ticket_payload = extract_tool_payload(prepare_ticket_result)
+
+            created_ticket_id = None
+
+            if prepare_ticket_payload.get("success"):
+                ticket_draft_id = prepare_ticket_payload["data"]["ticket_draft_id"]
+
+                print("\n=== CALL TOOL: submit_ticket_creation_after_confirmation ===")
+                submit_ticket_result = await session.call_tool(
+                    "submit_ticket_creation_after_confirmation",
+                    {
+                        "ticket_draft_id": ticket_draft_id,
+                        "approved_by": "varun.kumar",
+                    }
+                )
+                print(submit_ticket_result)
+
+                submit_ticket_payload = extract_tool_payload(submit_ticket_result)
+
+                if submit_ticket_payload.get("success"):
+                    created_ticket_id = submit_ticket_payload["data"]["ticket_id"]
+            else:
+                print("Skipping ticket submission because ticket preparation failed.")
+
+
+            print("\n=== CALL TOOL: prepare_notification ===")
+            prepare_notification_result = await session.call_tool(
+                "prepare_notification",
+                {
+                    "request_id": "REQ-1003",
+                    "recipient": "identity_ops_team",
+                    "channel": "teams",
+                    "subject": "MCP notification test",
+                    "message": "Testing notification workflow through MCP client.",
+                }
+            )
+            print(prepare_notification_result)
+
+            prepare_notification_payload = extract_tool_payload(prepare_notification_result)
+
+            if prepare_notification_payload.get("success"):
+                notification_draft_id = prepare_notification_payload["data"]["notification_draft_id"]
+
+                print("\n=== CALL TOOL: send_notification_after_confirmation ===")
+                send_notification_result = await session.call_tool(
+                    "send_notification_after_confirmation",
+                    {
+                        "notification_draft_id": notification_draft_id,
+                        "approved_by": "varun.kumar",
+                    }
+                )
+                print(send_notification_result)
+            else:
+                print("Skipping notification send because notification preparation failed.")
+
+
+            print("\n=== CALL TOOL: prepare_ticket_closure ===")
+            if created_ticket_id:
+                prepare_closure_result = await session.call_tool(
+                    "prepare_ticket_closure",
+                    {
+                        "ticket_id": created_ticket_id,
+                        "closure_reason": "MCP test completed",
+                        "resolution_summary": "Ticket was created and closed through MCP client test.",
+                    }
+                )
+                print(prepare_closure_result)
+
+                prepare_closure_payload = extract_tool_payload(prepare_closure_result)
+
+                if prepare_closure_payload.get("success"):
+                    closure_draft_id = prepare_closure_payload["data"]["closure_draft_id"]
+
+                    print("\n=== CALL TOOL: submit_ticket_closure_after_confirmation ===")
+                    submit_closure_result = await session.call_tool(
+                        "submit_ticket_closure_after_confirmation",
+                        {
+                            "closure_draft_id": closure_draft_id,
+                            "approved_by": "varun.kumar",
+                        }
+                    )
+                    print(submit_closure_result)
+            else:
+                print("Skipping ticket closure because ticket creation failed.")
+
+
+            print("\n=== CALL TOOL: submit_ticket_closure_after_confirmation UNAUTHORIZED ===")
+            unauthorized_ticket_result = await session.call_tool(
+                "prepare_ticket_creation",
+                {
+                    "request_id": "REQ-1002",
+                    "title": "MCP unauthorized closure test",
+                    "priority": "Low",
+                }
+            )
+            print(unauthorized_ticket_result)
+
+            unauthorized_ticket_payload = extract_tool_payload(unauthorized_ticket_result)
+
+            if unauthorized_ticket_payload.get("success"):
+                unauthorized_ticket_submit = await session.call_tool(
+                    "submit_ticket_creation_after_confirmation",
+                    {
+                        "ticket_draft_id": unauthorized_ticket_payload["data"]["ticket_draft_id"],
+                        "approved_by": "varun.kumar",
+                    }
+                )
+                print(unauthorized_ticket_submit)
+
+                unauthorized_ticket_submit_payload = extract_tool_payload(unauthorized_ticket_submit)
+
+                if unauthorized_ticket_submit_payload.get("success"):
+                    unauthorized_created_ticket_id = unauthorized_ticket_submit_payload["data"]["ticket_id"]
+
+                    unauthorized_closure_prepare = await session.call_tool(
+                        "prepare_ticket_closure",
+                        {
+                            "ticket_id": unauthorized_created_ticket_id,
+                        }
+                    )
+                    print(unauthorized_closure_prepare)
+
+                    unauthorized_closure_prepare_payload = extract_tool_payload(
+                        unauthorized_closure_prepare
+                    )
+
+                    if unauthorized_closure_prepare_payload.get("success"):
+                        unauthorized_closure_submit = await session.call_tool(
+                            "submit_ticket_closure_after_confirmation",
+                            {
+                                "closure_draft_id": unauthorized_closure_prepare_payload["data"]["closure_draft_id"],
+                                "approved_by": "readonly.user",
+                            }
+                        )
+                        print(unauthorized_closure_submit)
 
 if __name__ == "__main__":
     asyncio.run(main())

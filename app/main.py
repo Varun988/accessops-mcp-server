@@ -407,6 +407,44 @@ def run_test():
                 approved_by="",
             )
             print(result25)
+
+    print_section("TEST 26: SUBMIT CLOSURE WITH UNAUTHORIZED USER")
+
+    unauthorized_closure_ticket_draft = registry.execute_tool(
+        "prepare_ticket_creation",
+        request_id="REQ-1002",
+        title="Ticket for unauthorized closure validation",
+        priority="Low",
+    )
+    print(unauthorized_closure_ticket_draft)
+
+    unauthorized_closure_ticket_id = None
+
+    if unauthorized_closure_ticket_draft.get("success"):
+        unauthorized_closure_ticket_submit = registry.execute_tool(
+            "submit_ticket_creation_after_confirmation",
+            ticket_draft_id=unauthorized_closure_ticket_draft["data"]["ticket_draft_id"],
+            approved_by="varun.kumar",
+        )
+        print(unauthorized_closure_ticket_submit)
+
+        if unauthorized_closure_ticket_submit.get("success"):
+            unauthorized_closure_ticket_id = unauthorized_closure_ticket_submit["data"]["ticket_id"]
+
+    if unauthorized_closure_ticket_id:
+        unauthorized_closure_prepare = registry.execute_tool(
+            "prepare_ticket_closure",
+            ticket_id=unauthorized_closure_ticket_id,
+        )
+        print(unauthorized_closure_prepare)
+
+        if unauthorized_closure_prepare.get("success"):
+            unauthorized_closure_submit = registry.execute_tool(
+                "submit_ticket_closure_after_confirmation",
+                closure_draft_id=unauthorized_closure_prepare["data"]["closure_draft_id"],
+                approved_by="readonly.user",
+            )
+            print(unauthorized_closure_submit)
     else:
         print("Skipping closure approval-required test because second ticket creation failed.")
 

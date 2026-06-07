@@ -29,6 +29,18 @@ class ErrorUtils:
         }
 
     @staticmethod
+    def tool_not_found(tool_name: str) -> dict:
+        return {
+            "success": False,
+            "error": ErrorResponse(
+                code="TOOL_NOT_FOUND",
+                message=f"Tool '{tool_name}' was not found.",
+                retryable=False,
+                suggested_action="Check the available tools list and try again.",
+            ).to_dict(),
+        }
+
+    @staticmethod
     def generic_error(message: str) -> dict:
         return {
             "success": False,

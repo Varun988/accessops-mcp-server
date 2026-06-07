@@ -366,7 +366,17 @@ def submit_ticket_closure_after_confirmation(
             return ErrorUtils.ticket_not_found(closure_draft_id)
 
         return ErrorUtils.generic_error(str(e))
-
+        
+    except PermissionError:
+        AuditLogger.log_tool_call(
+            tool_name="submit_ticket_closure_after_confirmation",
+            request_id=closure_draft_id,
+            status="failure",
+        )
+        return ErrorUtils.authorization_failed(
+            user_id=approved_by,
+            permission="ticket:close",
+        )
     except Exception as e:
         AuditLogger.log_tool_call(
             tool_name="submit_ticket_closure_after_confirmation",
